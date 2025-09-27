@@ -9,7 +9,8 @@ Sakhi is a conversational healthcare assistant designed for rural women in India
   - `LOCAL_DIRECTORY` searches a curated PIN-code directory (`sakhi_chatbot/data/local_health_directory.json`).
   - `HEALTH_KNOWLEDGE` references vetted summaries (`sakhi_chatbot/data/health_knowledge_base.json`).
 - Voice pipeline reusing the existing `SpeechRecognition` flow and optional text-to-speech playback via `pyttsx3`.
-- Encourages medical escalation when severe symptoms are detected and always relays a safety note.
+- Encourages medical escalation when severe symptoms are detected and, when possible, shares nearby doctor options.
+- When a situation is critical and the PIN code is known, Sakhi automatically pulls nearby clinics from the local directory so the user instantly gets actionable help.
 
 ## Setup
 1. Ensure Python 3.9+ is available.
@@ -22,6 +23,11 @@ Sakhi is a conversational healthcare assistant designed for rural women in India
    ```bash
    export GROQ_API_KEY="your_key_here"
    ```
+4. *(Optional)* If you have access to a trusted public health information API, expose it via:
+   ```bash
+   export HEALTH_INFO_API="https://example.org/health"
+   ```
+   The agent will call this endpoint with `?topic=<keyword>` and merge the response with the offline knowledge base.
 
 ## Running Sakhi
 ### Text mode (default)

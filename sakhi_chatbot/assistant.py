@@ -1,79 +1,87 @@
-"""High level orchestration for the Sakhi healthcare assistant."""
+"""Agent-enabled orchestration for the Sakhi healthcare assistant."""
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 from .agents.health_info_agent import HealthKnowledgeAgent
 from .agents.local_info_agent import LocalDirectoryAgent
-from .groq_client import GroqChatClient, GroqMessage, GroqAPIError
+from .groq_client import GroqAPIError, GroqChatClient, GroqMessage
 from .language import LanguageRouter
 from .memory import ConversationMemory
 
-PRIMARY_SYSTEM_PROMPT = """
-You are Sakhi, a trusted community health guide supporting rural women in India.
-You always respond with JSON using this schema: {"language": string, "assistant_reply": string, "agent": {"name": string, "inputs": object}, "encourage_doctor": boolean, "safety_note": string}.
-Detect the user's language from the latest message and use the closest available Indian language locale (BCP-47).
-If you receive an extra system message prefixed with LANGUAGE_HINT::, favour that code when picking the language.
-For serious symptoms, set encourage_doctor=true and craft assistant_reply that urges the user to seek professional help.
-The agent name must be one of NONE, LOCAL_DIRECTORY, or HEALTH_KNOWLEDGE.
-If an agent other than NONE is required, make assistant_reply a short message asking the user to wait while you collect information.
-Inputs for LOCAL_DIRECTORY should include a "pincode" field if available.
-Inputs for HEALTH_KNOWLEDGE should include a "topic" string that maps to the curated knowledge base topics: anaemia, prenatal, breastfeeding.
-Keep tone respectful, culturally sensitive, and always remind users to see a doctor for alarming warning signs.
-""".strip()
+PRIMARY_SYSTEM_PROMPT = (
+    "You are Sakhi, a warm and caring community health guide supporting rural women in India. "
+    "Speak naturally in the user's language (BCP-47). Start with empathy, ask gentle follow-up "
+    "questions when needed, and keep responses conversational (3-5 sentences)."
+    "\nOutput strict JSON with this schema: {\"language\": string, \"assistant_reply\": string, "
+    "\"next_step\": {\"type\": \"NONE\" | \"LOCAL_DIRECTORY\" | \"HEALTH_KNOWLEDGE\", \"inputs\": object}, "
+    "\"encourage_doctor\": boolean}."
+    "\nGuidelines:\n"
+    "- If symptoms are severe (heavy bleeding, high fever, severe pain, pregnancy complications, fainting, etc.), "
+    "set encourage_doctor=true and clearly advise visiting a doctor. If you don't yet have a PIN code, politely ask "
+    "for it instead of calling an agent.\n"
+    "- Only set next_step.type to LOCAL_DIRECTORY when you already know a valid PIN code (6 digit). Include it in inputs.\n"
+    "- When the user mainly seeks self-care tips, set next_step.type to HEALTH_KNOWLEDGE with a concise lowercase topic.\n"
+    "- Whenever you plan to call any agent (next_step.type != \"NONE\"), add a friendly sentence in assistant_reply "
+    "asking the user to wait about a minute while you gather trusted information.\n"
+    "- Keep tone respectful, culturally sensitive, and avoid medical jargon."
+)
 
 AGENT_SUMMARY_PROMPT_TEMPLATE = (
-    "You are Sakhi, continuing the same conversation in {language}. Summarise the "
-    "agent findings below in the user's language, include relevant cautions, and "
-    "encourage medical consultation when warranted. Be concise and empathetic."
+    "You are Sakhi continuing the conversation in {language}. Blend the agent results below into a caring reply. "
+    "Reiterate key guidance, encourage doctor visits when encourage_doctor is true, and keep things warm yet concise."
 )
 
 WAITING_TRANSLATIONS: Dict[str, str] = {
-    "hi-IN": "कृपया थोड़ा इंतज़ार करें, मैं जानकारी जुटा रही हूँ।",
-    "bn-IN": "অনুগ্রহ করে একটু অপেক্ষা করুন, আমি তথ্য সংগ্রহ করছি।",
-    "te-IN": "దయచేసి కాసేపు వేచి ఉండండి, నేనే సమాచారం తెస్తున్నాను.",
-    "ta-IN": "தயவு செய்து ஒரு நிமிடம் காத்திருக்கவும், தகவலை கொண்டுவருகிறேன்.",
-    "ml-IN": "ദയവായി ഒരു നിമിഷം കാത്തിരിക്കൂ, ഞാൻ വിവരങ്ങൾ ശേഖരിക്കുന്നു.",
-    "mr-IN": "कृपया थोडा वेळ थांबा, मी माहिती गोळा करत आहे.",
-    "gu-IN": "મહેરબાની કરીને થોડી રાહ જુઓ, હું માહિતી મેળવી રહી છું.",
-    "kn-IN": "ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಕಾಯಿರಿ, ನಾನು ಮಾಹಿತಿಯನ್ನು ಸಂಗ್ರಹಿಸುತ್ತಿದ್ದೇನೆ.",
-    "pa-IN": "ਕਿਰਪਾ ਕਰਕੇ ਥੋੜ੍ਹਾ ਇੰਤਜ਼ਾਰ ਕਰੋ, ਮੈਂ ਜਾਣਕਾਰੀ ਲੈ ਰਹੀ ਹਾਂ।",
-    "ur-IN": "براہ کرم کچھ دیر انتظار کریں، میں معلومات جمع کر رہی ہوں۔",
+    "en-IN": "Please wait about a minute while I gather trusted information...",
+    "hi-IN": "कृपया एक मिनट प्रतीक्षा करें, मैं भरोसेमंद जानकारी जुटा रही हूँ...",
+    "bn-IN": "অনুগ্রহ করে এক মিনিট অপেক্ষা করুন, আমি নির্ভরযোগ্য তথ্য খুঁজে আনছি...",
+    "te-IN": "దయచేసి ఒక నిమిషం వేచి ఉండండి, నమ్మదగిన సమాచారం తెస్తున్నాను...",
+    "ta-IN": "ஒரு நிமிடம் காத்திருக்கவும், நம்பகமான தகவலை தேடிக்கொண்டு இருக்கிறேன்...",
+    "ml-IN": "ഒരു മിനിറ്റ് കാത്തിരിക്കൂ, വിശ്വസനീയമായ വിവരങ്ങൾ ശേഖരിക്കുകയാണ്...",
+    "mr-IN": "कृपया एक मिनिट थांबा, मी खात्रीशीर माहिती गोळा करत आहे...",
+    "gu-IN": "મહેરબાની કરીને એક મિનિટ રાહ જુઓ, હું વિશ્વસનીય માહિતી શોધી રહી છું...",
+    "kn-IN": "ದಯವಿಟ್ಟು ಒಂದು ನಿಮಿಷ ಕಾಯಿರಿ, ವಿಶ್ವಾಸಾರ್ಹ ಮಾಹಿತಿಯನ್ನು ತರ್ತಿದ್ದೇನೆ...",
+    "pa-IN": "ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਮਿੰਟ ਠਹਿਰੋ, ਮੈਂ ਭਰੋਸੇਮੰਦ ਜਾਣਕਾਰੀ ਲੈ ਰਹੀ ਹਾਂ...",
+    "ur-IN": "براہ کرم ایک منٹ انتظار کریں، میں قابلِ بھروسہ معلومات لا رہی ہوں...",
 }
 
 
 @dataclass
 class AgentDirective:
-    name: str = "NONE"
-    inputs: Dict[str, str] = field(default_factory=dict)
+    type: str = "NONE"
+    inputs: Dict[str, str] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self.inputs is None:
+            self.inputs = {}
 
 
 @dataclass
 class GroqDirective:
     language: str
     assistant_reply: str
-    agent: AgentDirective
+    next_step: AgentDirective
     encourage_doctor: bool
-    safety_note: str
 
 
 @dataclass
 class AssistantTurnResult:
     language: str
     message: str
+    encourage_doctor: bool
     agent_name: str
     agent_inputs: Dict[str, str]
-    safety_note: str
-    encourage_doctor: bool
     agent_output: Optional[str] = None
     intermediate_message: Optional[str] = None
 
 
 class SakhiAssistant:
-    """Coordinate language routing, Groq reasoning, and specialist agents."""
+    """Coordinate Groq reasoning with optional agent hand-offs."""
 
     def __init__(
         self,
@@ -87,16 +95,14 @@ class SakhiAssistant:
         self.groq_client = groq_client
         self.memory = memory
         self.language_router = language_router or LanguageRouter()
+        data_root = Path(__file__).resolve().parent / "data"
         self.local_agent = local_agent or LocalDirectoryAgent(
-            Path(__file__).resolve().parent / "data" / "local_health_directory.json"
+            data_root / "local_health_directory.json"
         )
         self.health_agent = health_agent or HealthKnowledgeAgent(
-            Path(__file__).resolve().parent / "data" / "health_knowledge_base.json"
+            data_root / "health_knowledge_base.json"
         )
 
-    # ------------------------------------------------------------------
-    # Core flow
-    # ------------------------------------------------------------------
     def handle_user_message(
         self,
         user_text: str,
@@ -107,34 +113,37 @@ class SakhiAssistant:
         self.memory.append("user", user_text)
 
         conversation = self._memory_as_messages()
-        directive = self._query_groq(conversation, language_hint=lang_decision.language_code)
+        directive = self._query_groq(
+            conversation,
+            language_hint=lang_decision.language_code,
+        )
 
         self.memory.append("assistant", directive.assistant_reply)
 
-        if directive.agent.name == "NONE":
+        if directive.next_step.type == "NONE":
             return AssistantTurnResult(
                 language=directive.language,
                 message=directive.assistant_reply,
+                encourage_doctor=directive.encourage_doctor,
                 agent_name="NONE",
                 agent_inputs={},
-                safety_note=directive.safety_note,
-                encourage_doctor=directive.encourage_doctor,
                 intermediate_message=None,
             )
 
         if on_intermediate:
             on_intermediate(directive.assistant_reply, directive.language)
 
-        agent_result = self._run_agent(directive.agent)
-        if not agent_result:
-            agent_result = "No trusted information was found. Encourage the user to contact a local doctor or ASHA worker."
+        agent_output = self._run_agent(directive.next_step)
+        if not agent_output:
+            agent_output = (
+                "इस समय भरोसेमंद जानकारी प्राप्त नहीं हो पाई। कृपया नजदीकी डॉक्टर या आशा कार्यकर्ता से सीधे संपर्क करें।"
+            )
 
         agent_summary = self._summarise_agent_response(
             language=directive.language,
-            agent_name=directive.agent.name,
-            agent_inputs=directive.agent.inputs,
-            agent_output=agent_result,
-            safety_note=directive.safety_note,
+            agent_name=directive.next_step.type,
+            agent_inputs=directive.next_step.inputs,
+            agent_output=agent_output,
             encourage_doctor=directive.encourage_doctor,
         )
 
@@ -142,11 +151,10 @@ class SakhiAssistant:
         return AssistantTurnResult(
             language=directive.language,
             message=agent_summary,
-            agent_name=directive.agent.name,
-            agent_inputs=directive.agent.inputs,
-            safety_note=directive.safety_note,
             encourage_doctor=directive.encourage_doctor,
-            agent_output=agent_result,
+            agent_name=directive.next_step.type,
+            agent_inputs=directive.next_step.inputs,
+            agent_output=agent_output,
             intermediate_message=directive.assistant_reply,
         )
 
@@ -159,12 +167,22 @@ class SakhiAssistant:
         *,
         language_hint: Optional[str] = None,
     ) -> GroqDirective:
-        prompt = PRIMARY_SYSTEM_PROMPT
+        messages: List[GroqMessage] = [GroqMessage(role="system", content=PRIMARY_SYSTEM_PROMPT)]
+        context_hint = self._context_hint()
+        if context_hint:
+            messages.append(
+                GroqMessage(role="system", content=f"Known context: {context_hint}")
+            )
         if language_hint:
-            prompt = PRIMARY_SYSTEM_PROMPT + f"\nLanguage hint: {language_hint}"
-        response = self.groq_client.structured_complete(
-            prompt,
-            conversation,
+            messages.append(
+                GroqMessage(role="system", content=f"Preferred language: {language_hint}")
+            )
+        messages.extend(conversation)
+
+        response = self.groq_client.complete(
+            messages,
+            temperature=0.45,
+            max_tokens=700,
         )
         raw_text = self.groq_client.extract_message_text(response)
         try:
@@ -172,48 +190,38 @@ class SakhiAssistant:
         except json.JSONDecodeError as exc:
             raise GroqAPIError(f"Groq returned non-JSON payload: {raw_text}") from exc
 
-        agent_payload = payload.get("agent") or {}
+        next_payload = payload.get("next_step") or {}
         directive = GroqDirective(
-            language=payload.get("language", "en-IN"),
+            language=payload.get("language", language_hint or "en-IN"),
             assistant_reply=payload.get(
                 "assistant_reply",
-                "मैं जानकारी एकत्र कर रही हूँ, कृपया प्रतीक्षा करें।",
+                WAITING_TRANSLATIONS.get(language_hint or "en-IN", WAITING_TRANSLATIONS["en-IN"]),
             ),
-            agent=AgentDirective(
-                name=agent_payload.get("name", "NONE"),
-                inputs=agent_payload.get("inputs", {}),
+            next_step=AgentDirective(
+                type=next_payload.get("type", "NONE"),
+                inputs=next_payload.get("inputs", {}),
             ),
             encourage_doctor=bool(payload.get("encourage_doctor", False)),
-            safety_note=payload.get(
-                "safety_note",
-                "If symptoms persist or worsen, please consult a qualified doctor immediately.",
-            ),
         )
 
-        if directive.agent.name != "NONE":
-            wait_text = WAITING_TRANSLATIONS.get(directive.language)
-            if wait_text:
-                directive.assistant_reply = wait_text
+        if directive.next_step.type != "NONE":
+            wait_text = WAITING_TRANSLATIONS.get(
+                directive.language, WAITING_TRANSLATIONS["en-IN"]
+            )
+            if wait_text not in directive.assistant_reply:
+                directive.assistant_reply = f"{directive.assistant_reply} {wait_text}".strip()
         return directive
 
-    def _run_agent(self, agent: AgentDirective) -> Optional[str]:
-        if agent.name == "LOCAL_DIRECTORY":
-            pincode = agent.inputs.get("pincode", "").strip()
+    def _run_agent(self, directive: AgentDirective) -> Optional[str]:
+        if directive.type == "LOCAL_DIRECTORY":
+            pincode = directive.inputs.get("pincode", "").strip()
             if not pincode:
                 return None
-            entries = self.local_agent.lookup(pincode)
-            if not entries:
-                return None
-            lines = [
-                f"{item['name']} | {item['address']} | {item['phone']} | {item['hours']} | {item['notes']}"
-                for item in entries
-            ]
-            return "\n".join(lines)
-
-        if agent.name == "HEALTH_KNOWLEDGE":
-            topic = agent.inputs.get("topic", "")
+            return self.local_agent.formatted_directory(pincode)
+        if directive.type == "HEALTH_KNOWLEDGE":
+            topic = directive.inputs.get("topic", "").strip()
             if not topic:
-                return None
+                topic = self._fallback_topic()
             return self.health_agent.fetch(topic)
         return None
 
@@ -224,30 +232,54 @@ class SakhiAssistant:
         agent_name: str,
         agent_inputs: Dict[str, str],
         agent_output: str,
-        safety_note: str,
         encourage_doctor: bool,
     ) -> str:
         summary_prompt = AGENT_SUMMARY_PROMPT_TEMPLATE.format(language=language)
-        augmented_history = self._memory_as_messages()
+        history = self._memory_as_messages()
         agent_context = json.dumps(
             {
                 "agent_name": agent_name,
                 "agent_inputs": agent_inputs,
                 "agent_output": agent_output,
-                "safety_note": safety_note,
                 "encourage_doctor": encourage_doctor,
             },
             ensure_ascii=False,
         )
-        augmented_history.append(GroqMessage(role="system", content=f"AGENT_DATA::{agent_context}"))
-        response = self.groq_client.structured_complete(
-            summary_prompt,
-            augmented_history,
+        history.append(
+            GroqMessage(role="system", content=f"AGENT_DATA::{agent_context}")
+        )
+        response = self.groq_client.complete(
+            history,
+            temperature=0.4,
+            max_tokens=500,
         )
         return self.groq_client.extract_message_text(response)
 
     def _memory_as_messages(self) -> List[GroqMessage]:
         return [GroqMessage(role=turn.role, content=turn.content) for turn in self.memory.history]
+
+    def _context_hint(self) -> Optional[str]:
+        pincode = self._latest_pincode()
+        if not pincode:
+            return None
+        return json.dumps({"known_pincode": pincode})
+
+    def _latest_pincode(self) -> Optional[str]:
+        pattern = re.compile(r"\b[1-9][0-9]{5}\b")
+        for turn in reversed(self.memory.history):
+            match = pattern.search(turn.content)
+            if match:
+                return match.group(0)
+        return None
+
+    def _fallback_topic(self) -> str:
+        for turn in reversed(self.memory.history):
+            cleaned = turn.content.strip().lower()
+            if cleaned:
+                for token in cleaned.split():
+                    if token.isalpha():
+                        return token
+        return "health"
 
 
 __all__ = ["SakhiAssistant", "AssistantTurnResult"]

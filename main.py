@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from sakhi_chatbot.assistant import AssistantTurnResult, SakhiAssistant
-from sakhi_chatbot.groq_client import GroqAPIError, GroqChatClient, DEFAULT_GROQ_MODEL
+from sakhi_chatbot.groq_client import DEFAULT_GROQ_MODEL, GroqAPIError, GroqChatClient
 from sakhi_chatbot.memory import ConversationMemory
 
 EXIT_COMMANDS = {"quit", "exit", "bye"}
@@ -56,17 +56,8 @@ def render_result(result: AssistantTurnResult, *, voice=None) -> None:
     print(f"Sakhi: {result.message}")
     if voice:
         voice.say(result.message)
-    if result.safety_note:
-        print(f"Safety: {result.safety_note}")
-        if result.encourage_doctor and voice:
-            voice.say(result.safety_note)
     if result.agent_name != "NONE":
-        print(
-            "[Agent]",
-            result.agent_name,
-            "inputs:",
-            result.agent_inputs or "{}",
-        )
+        print("[Helper Agent]", result.agent_name, "inputs:", result.agent_inputs or "{}")
 
 
 def run_text_mode(assistant: SakhiAssistant) -> None:
@@ -97,7 +88,7 @@ def run_text_mode(assistant: SakhiAssistant) -> None:
 def run_voice_mode(assistant: SakhiAssistant) -> None:
     try:
         from sakhi_chatbot.voice_io import VoiceConfig, VoiceInterface
-    except ImportError as exc:
+    except ImportError:
         print("Voice dependencies missing. Install speechrecognition and pyttsx3.")
         sys.exit(1)
 

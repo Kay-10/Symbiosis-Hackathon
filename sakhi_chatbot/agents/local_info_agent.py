@@ -1,4 +1,4 @@
-"""Agent responsible for returning local healthcare assistance details."""
+"""Local directory agent providing nearby healthcare contacts."""
 from __future__ import annotations
 
 import json
@@ -15,35 +15,40 @@ class LocalResource:
     hours: str
     notes: str
 
-    def to_dict(self) -> Dict[str, str]:
-        return {
-            "name": self.name,
-            "address": self.address,
-            "phone": self.phone,
-            "hours": self.hours,
-            "notes": self.notes,
-        }
+    def render(self) -> str:
+        segments = [self.name]
+        if self.address:
+            segments.append(self.address)
+        if self.phone:
+            segments.append(f"फोन: {self.phone}")
+        if self.hours:
+            segments.append(f"समय: {self.hours}")
+        if self.notes:
+            segments.append(f"नोट: {self.notes}")
+        return " | ".join(segments)
 
 
 class LocalDirectoryAgent:
-    """Lookup agent using a small curated directory keyed by PIN code."""
+    """Lookup agent returning formatted clinic information by PIN code."""
 
     def __init__(self, directory_path: Path) -> None:
         self.directory_path = directory_path
         self._cache: Dict[str, List[LocalResource]] = {}
-        self._load_directory()
+        self._load()
 
-    def _load_directory(self) -> None:
+    def _load(self) -> None:
         if not self.directory_path.exists():
             self._cache = {}
             return
         try:
-            data = json.loads(self.directory_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
+            raw = self.directory_path.read_text(encoding="utf-8")
+            data = json.loads(raw)
+        except (OSError, json.JSONDecodeError):
             self._cache = {}
             return
-        for pincode, entries in data.items():
-            resources = []
+        parsed: Dict[str, List[LocalResource]] = {}
+        for code, entries in data.items():
+            resources: List[LocalResource] = []
             for entry in entries:
                 resources.append(
                     LocalResource(
@@ -54,13 +59,21 @@ class LocalDirectoryAgent:
                         notes=entry.get("notes", ""),
                     )
                 )
-            self._cache[pincode] = resources
+            parsed[code] = resources
+        self._cache = parsed
 
-    def lookup(self, pincode: str) -> List[Dict[str, str]]:
-        resources = self._cache.get(str(pincode).strip())
-        if not resources:
+    def lookup(self, pincode: str) -> List[LocalResource]:
+        if not pincode:
             return []
-        return [resource.to_dict() for resource in resources]
+        return list(self._cache.get(str(pincode).strip(), []))
+
+    def formatted_directory(self, pincode: str) -> Optional[str]:
+        records = self.lookup(pincode)
+        if not records:
+            return None
+        lines = [resource.render() for resource in records]
+        body = "\n".join(f"• {line}" for line in lines)
+        return f"PIN {pincode} के पास के भरोसेमंद विकल्प:\n{body}"
 
 
-__all__ = ["LocalDirectoryAgent"]
+__all__ = ["LocalDirectoryAgent", "LocalResource"]
