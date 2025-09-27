@@ -43,6 +43,34 @@ WAITING_TRANSLATIONS: Dict[str, str] = {
     "ur-IN": "براہ کرم ایک منٹ انتظار کریں، میں قابلِ بھروسہ معلومات لا رہی ہوں...",
 }
 
+NO_AGENT_FALLBACK: Dict[str, str] = {
+    "en-IN": "I could not pull trusted details right now. Please visit or call your nearest doctor or ASHA worker as soon as possible.",
+    "hi-IN": "मैं अभी भरोसेमंद जानकारी नहीं ला पा रही हूँ। कृपया जल्द से जल्द नज़दीकी डॉक्टर या आशा कार्यकर्ता से संपर्क करें।",
+    "bn-IN": "এই মুহূর্তে নির্ভরযোগ্য তথ্য আনতে পারলাম না। অনুগ্রহ করে যত দ্রুত সম্ভব নিকটস্থ চিকিৎসক বা আশা কর্মীর সঙ্গে যোগাযোগ করুন।",
+    "ta-IN": "நம்பகமான தகவலை இப்போது பெற முடியவில்லை. தயவு செய்து விரைவில் அருகிலுள்ள மருத்துவரையோ ஆஷா பணியாளரையோ தொடர்புக் கொள்ளுங்கள்.",
+    "te-IN": "ఇప్పుడు విశ్వసనీయ సమాచారం అందలేకపోయాను. దయచేసి వెంటనే సమీప వైద్యుడిని లేదా ఆశా వర్కర్‌ని సంప్రదించండి.",
+    "ml-IN": "ഇപ്പോൾ വിശ്വസനീയമായ വിവരം ലഭ്യമല്ല. ദയവായി ഉടൻ അടുത്തുള്ള ഡോക്ടറെ അല്ലെങ്കിൽ ആശാ പ്രവർത്തകയെ സമീപിക്കുക.",
+    "mr-IN": "मला सध्या खात्रीशीर माहिती मिळू शकली नाही. कृपया त्वरित जवळच्या डॉक्टरांशी किंवा आशा कार्यकर्त्याशी संपर्क साधा.",
+    "gu-IN": "હું હમણાં વિશ્વસનીય માહિતી મેળવી શકી નથી. કૃપા કરીને તાત્કાલિક નજીકના ડૉક્ટર અથવા આશા કાર્યકરને સંપર્ક કરો.",
+    "kn-IN": "ಈ ಕ್ಷಣಕ್ಕೆ ವಿಶ್ವಾಸಾರ್ಹ ಮಾಹಿತಿಯನ್ನು ತರಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಸಾಧ್ಯವಾದಷ್ಟು ಬೇಗ ಸಮೀಪದ ವೈದ್ಯರನ್ನು ಅಥವಾ ಆಶಾ ಕಾರ್ಯಕರ್ತರನ್ನು ಸಂಪರ್ಕಿಸಿ.",
+    "pa-IN": "ਮੈਨੂੰ ਇਸ ਵੇਲੇ ਭਰੋਸੇਯੋਗ ਜਾਣਕਾਰੀ ਨਹੀਂ ਮਿਲ ਸਕੀ। ਕਿਰਪਾ ਕਰਕੇ ਜਿੰਨਾ ਜਲਦੀ ਹੋ ਸਕੇ, ਨੇੜਲੇ ਡਾਕਟਰ ਜਾਂ ਆਸ਼ਾ ਵਰਕਰ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।",
+    "ur-IN": "میں اس وقت مستند معلومات نہیں لا سکی۔ براہ کرم جلد از جلد قریب ترین ڈاکٹر یا آشا ورکر سے رابطہ کریں۔",
+}
+
+TOPIC_NORMALISATION: Dict[str, str] = {
+    "sir dard": "headache",
+    "sar dard": "headache",
+    "dard": "pain",
+    "bukhar": "fever",
+    "bukhaar": "fever",
+    "khansi": "cough",
+    "khansi bukhar": "fever",
+    "pet dard": "stomach pain",
+    "pet": "stomach",
+    "ulati": "vomiting",
+    "ulta": "vomiting",
+}
+
 LANGUAGE_LABELS: Dict[str, str] = {
     "en-IN": "English",
     "hi-IN": "Hindi",
@@ -138,8 +166,8 @@ class SakhiAssistant:
 
         agent_output = self._run_agent(directive.next_step)
         if not agent_output:
-            agent_output = (
-                "इस समय भरोसेमंद जानकारी प्राप्त नहीं हो पाई। कृपया नज़दीकी डॉक्टर या आशा कार्यकर्ता से सीधे संपर्क करें।"
+            agent_output = NO_AGENT_FALLBACK.get(
+                directive.language, NO_AGENT_FALLBACK["en-IN"]
             )
 
         agent_summary = self._summarise_agent_response(
@@ -185,6 +213,14 @@ class SakhiAssistant:
                 inputs = {}
         if agent_type == "HEALTH_KNOWLEDGE" and not inputs.get("topic"):
             inputs["topic"] = self._fallback_topic()
+        if agent_type == "HEALTH_KNOWLEDGE":
+            inputs["topic"] = self._normalise_topic(inputs.get("topic", ""))
+
+        encourage_flag = bool(payload.get("encourage_doctor", False))
+        latest_pin = self._latest_pincode()
+        if encourage_flag and agent_type != "LOCAL_DIRECTORY" and latest_pin:
+            agent_type = "LOCAL_DIRECTORY"
+            inputs = {"pincode": latest_pin}
 
         directive = GroqDirective(
             language=payload.get("language", language_hint or "en-IN"),
@@ -195,7 +231,7 @@ class SakhiAssistant:
                 ),
             ),
             next_step=AgentDirective(type=agent_type, inputs=inputs),
-            encourage_doctor=bool(payload.get("encourage_doctor", False)),
+            encourage_doctor=encourage_flag,
         )
 
         if directive.next_step.type != "NONE":
@@ -351,6 +387,13 @@ class SakhiAssistant:
     @staticmethod
     def _language_label(language_code: str) -> str:
         return LANGUAGE_LABELS.get(language_code, language_code)
+
+    @staticmethod
+    def _normalise_topic(topic: str) -> str:
+        cleaned = topic.strip().lower()
+        if not cleaned:
+            return "health"
+        return TOPIC_NORMALISATION.get(cleaned, cleaned)
 
 
 __all__ = ["SakhiAssistant", "AssistantTurnResult"]

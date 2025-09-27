@@ -56,8 +56,6 @@ def render_result(result: AssistantTurnResult, *, voice=None) -> None:
     print(f"Sakhi: {result.message}")
     if voice:
         voice.say(result.message)
-    if result.agent_name != "NONE":
-        print("[Helper Agent]", result.agent_name, "inputs:", result.agent_inputs or "{}")
 
 
 def run_text_mode(assistant: SakhiAssistant) -> None:
