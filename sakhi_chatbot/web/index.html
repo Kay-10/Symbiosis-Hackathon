@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sakhi – Caring Health Companion</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="title-group">
+          <div class="logo">🌸</div>
+          <div>
+            <h1>Sakhi</h1>
+            <p class="subtitle">Your trusted community health friend</p>
+          </div>
+        </div>
+        <div class="status-pill" id="status-pill">Ready</div>
+      </header>
+
+      <main class="chat-layout">
+        <section class="chat-window" id="chat-window">
+          <ul class="message-list" id="message-list"></ul>
+        </section>
+
+        <section class="composer">
+          <div class="input-wrapper">
+            <textarea
+              id="text-input"
+              placeholder="Write your message here…"
+              rows="2"
+            ></textarea>
+            <button id="send-btn" class="primary">Send</button>
+          </div>
+
+          <div class="voice-controls">
+            <button id="talk-btn" class="voice primary">
+              <span class="icon">🎤</span>
+              <span>Talk</span>
+            </button>
+            <button id="stop-btn" class="voice" disabled>
+              <span class="icon">⏹</span>
+              <span>Stop</span>
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="message-template">
+      <li class="message">
+        <div class="avatar"></div>
+        <div class="bubble">
+          <div class="meta"></div>
+          <div class="text"></div>
+        </div>
+      </li>
+    </template>
+
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>

@@ -1,60 +1,53 @@
 # Symbiosis Hackathon – Sakhi Assistant
 
-Sakhi is a conversational healthcare assistant designed for rural women in India. It offers a culturally-aware chat experience, supports multiple Indian languages, and can hand off to specialised agents for local doctor lookups or trusted health guidance.
+Sakhi is a conversational healthcare companion crafted for rural women in India. She listens with empathy, understands multiple Indian languages, and can escalate to trusted agents for local doctor lookups or reliable health facts whenever required.
 
 ## Features
-- Text and voice interaction modes with persistent chat history for follow-up questions.
-- Groq-powered conversational core that adapts tone and output language to the user.
-- Structured agent hand-offs:
-  - `LOCAL_DIRECTORY` searches a curated PIN-code directory (`sakhi_chatbot/data/local_health_directory.json`).
-  - `HEALTH_KNOWLEDGE` references vetted summaries (`sakhi_chatbot/data/health_knowledge_base.json`).
-- Voice pipeline reusing the existing `SpeechRecognition` flow and optional text-to-speech playback via `pyttsx3`.
-- Encourages medical escalation when severe symptoms are detected and, when possible, shares nearby doctor options.
-- Blends curated local content with live data from trusted sources (US HHS MyHealthfinder, National Health Portal of India, UNICEF India), with graceful fallback to the offline knowledge base.
-- When a situation is critical and the PIN code is known, Sakhi automatically pulls nearby clinics from the local directory so the user instantly gets actionable help.
+- Warm, multilingual chat experience powered by Groq with memory-aware follow ups.
+- Push-to-talk web companion with automatic silence detection, quick transcription, and natural voice replies.
+- Seamless agent hand-offs:
+  - `LOCAL_DIRECTORY` fetches nearby clinics from `sakhi_chatbot/data/local_health_directory.json`.
+  - `HEALTH_KNOWLEDGE` blends cached guidance with live data (US HHS MyHealthfinder, National Health Portal of India, UNICEF India, optional custom API).
+- Critical cases trigger a location-to-PIN workflow so Sakhi can surface actionable doctor details before signing off.
+- Text-only CLI retained for minimal environments.
 
 ## Setup
-1. Ensure Python 3.9+ is available.
+1. Ensure Python 3.9+ is installed.
 2. Install dependencies:
    ```bash
-   pip install requests langdetect SpeechRecognition pyttsx3 beautifulsoup4
+   pip install requests langdetect SpeechRecognition fastapi uvicorn python-multipart beautifulsoup4
    ```
-   Voice mode additionally requires microphone support (PyAudio for SpeechRecognition).
+   For best results with the HTML scrapers also install:
+   ```bash
+   pip install lxml
+   ```
 3. Export your Groq API key:
    ```bash
    export GROQ_API_KEY="your_key_here"
    ```
-4. *(Optional)* If you have access to a trusted public health information API, expose it via:
+4. *(Optional)* If you have a trusted public health information API, expose it via:
    ```bash
    export HEALTH_INFO_API="https://example.org/health"
    ```
-   The agent will call this endpoint with `?topic=<keyword>` and merge the response with the offline knowledge base.
-5. *(Optional)* To use the built-in National Health Portal/UNICEF HTML scrapers, install `lxml` for better parsing accuracy:
-   ```bash
-   pip install lxml
-   ```
+   Sakhi will call this endpoint with `?topic=<keyword>` and merge the response.
 
 ## Running Sakhi
-### Text mode (default)
+### Text CLI (legacy)
 ```bash
-python3 main.py --mode text
+python3 main.py
 ```
 
-### Voice mode
+### Web companion (recommended)
 ```bash
-python3 main.py --mode voice
+uvicorn sakhi_chatbot.web_app:app --reload
 ```
-Voice mode listens for speech, shows intermediate "please wait" prompts, and plays back the response using text-to-speech when available. Say “stop” or “quit” to end the session.
-
-### Useful flags
-- `--history PATH` – customise the chat history location (default `.storage/chat_history.json`).
-- `--clear-history` – start a fresh conversation.
-- `--model MODEL_ID` – override the Groq model (default `mixtral-8x7b-32768`).
+Open http://localhost:8000 and use the **Talk** button for voice conversations or type messages directly. Spoken turns and typed turns share the same chat history, and responses are read aloud in the detected language. While Sakhi is processing or speaking, the Talk button is temporarily disabled; you can always press **Stop** to cancel and start a fresh recording.
 
 ## Customising data sources
-- Update `sakhi_chatbot/data/local_health_directory.json` to enrich local doctor/clinic listings by PIN code.
-- Extend `sakhi_chatbot/data/health_knowledge_base.json` with additional trusted topics. Keep entries concise and cite reliable sources.
+- Enrich `sakhi_chatbot/data/local_health_directory.json` with more clinics keyed by PIN code.
+- Extend `sakhi_chatbot/data/health_knowledge_base.json` with concise, cited topics for local conditions.
 
 ## Notes
-- The application persists history automatically so follow-up questions maintain context.
-- When network access or Groq API calls fail, Sakhi returns user-friendly error messages and encourages contacting a local health worker.
+- Each web session maintains its own persisted history under `.storage/web_sessions/` so conversations can resume after refresh.
+- When the speech recogniser cannot decode audio, Sakhi prompts the user to try again without losing context.
+- If Groq or network calls fail, Sakhi responds gracefully and encourages contacting a nearby health worker.

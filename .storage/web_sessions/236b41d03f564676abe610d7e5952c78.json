@@ -1,0 +1,38 @@
+[
+  {
+    "role": "user",
+    "content": "Hi"
+  },
+  {
+    "role": "assistant",
+    "content": "Hello sister, how can I support you today?"
+  },
+  {
+    "role": "user",
+    "content": "I am not feeling well"
+  },
+  {
+    "role": "assistant",
+    "content": "Sorry to hear that, sister. Can you please tell me more about how you're feeling?"
+  },
+  {
+    "role": "user",
+    "content": "I am not feeling nice"
+  },
+  {
+    "role": "assistant",
+    "content": "Please wait about a minute while I gather trusted information..."
+  },
+  {
+    "role": "assistant",
+    "content": "Didi, please share your village or PIN code so I can find a nearby doctor for you."
+  },
+  {
+    "role": "user",
+    "content": "Hinjawadi"
+  },
+  {
+    "role": "assistant",
+    "content": "I understood the PIN code as 411057. Is that correct? Please reply with yes or no."
+  }
+]

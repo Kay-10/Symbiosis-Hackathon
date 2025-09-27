@@ -12,13 +12,7 @@ EXIT_COMMANDS = {"quit", "exit", "bye"}
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Sakhi conversational healthcare assistant")
-    parser.add_argument(
-        "--mode",
-        choices=["text", "voice"],
-        default="text",
-        help="Run in text (terminal) mode or voice mode",
-    )
+    parser = argparse.ArgumentParser(description="Sakhi conversational healthcare assistant (text CLI)")
     parser.add_argument(
         "--history",
         default=".storage/chat_history.json",
@@ -83,40 +77,6 @@ def run_text_mode(assistant: SakhiAssistant) -> None:
     print("Goodbye from Sakhi.")
 
 
-def run_voice_mode(assistant: SakhiAssistant) -> None:
-    try:
-        from sakhi_chatbot.voice_io import VoiceConfig, VoiceInterface
-    except ImportError:
-        print("Voice dependencies missing. Install speechrecognition and pyttsx3.")
-        sys.exit(1)
-
-    voice = VoiceInterface()
-    config = VoiceConfig()
-    print("Voice mode active. Say 'stop' or 'quit' to finish.")
-    while True:
-        transcript = voice.listen_once(config)
-        if not transcript:
-            print("I couldn't hear that clearly. Let's try again.")
-            continue
-        print(f"You said: {transcript}")
-        normalized = transcript.lower().strip()
-        if any(cmd in normalized for cmd in EXIT_COMMANDS) or "stop" in normalized:
-            break
-        try:
-            def voice_wait(msg: str, _lang: str) -> None:
-                print(f"Sakhi: {msg}")
-                voice.say(msg)
-
-            result = assistant.handle_user_message(
-                transcript,
-                on_intermediate=voice_wait,
-            )
-        except GroqAPIError as exc:
-            print(f"Sakhi encountered an error: {exc}")
-            continue
-        render_result(result, voice=voice)
-    print("Voice session ended. Goodbye from Sakhi.")
-
 
 def main() -> None:
     args = parse_args()
@@ -124,10 +84,7 @@ def main() -> None:
     memory = build_memory(history_path, args.clear_history)
     assistant = build_assistant(args.model, memory)
 
-    if args.mode == "voice":
-        run_voice_mode(assistant)
-    else:
-        run_text_mode(assistant)
+    run_text_mode(assistant)
 
 
 if __name__ == "__main__":
