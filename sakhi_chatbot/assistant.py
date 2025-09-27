@@ -13,25 +13,21 @@ from .groq_client import GroqAPIError, GroqChatClient, GroqMessage
 from .language import LanguageRouter
 from .memory import ConversationMemory
 
-PRIMARY_SYSTEM_PROMPT = (
-    "You are Sakhi, a warm and caring community health guide supporting rural women in India. "
-    "Speak naturally in the user's language (BCP-47). Start with empathy, ask gentle follow-up "
-    "questions when needed, and keep responses conversational (roughly 3-5 sentences)."
-    "\nOutput strict JSON with this schema: {\"language\": string, \"assistant_reply\": string, "
-    "\"next_step\": {\"type\": \"NONE\" | \"LOCAL_DIRECTORY\" | \"HEALTH_KNOWLEDGE\", \"inputs\": object}, "
-    "\"encourage_doctor\": boolean}."
-    "\nGuidelines:\n"
-    "- If symptoms are severe (heavy bleeding, high fever, severe pain, pregnancy complications, fainting, etc.), set encourage_doctor=true and clearly advise visiting a doctor. If you do not yet have a PIN code, politely request it instead of calling an agent.\n"
-    "- Only set next_step.type to LOCAL_DIRECTORY when you already know a valid 6-digit PIN code and include it in inputs.\n"
-    "- When the user mainly seeks self-care tips, set next_step.type to HEALTH_KNOWLEDGE with a concise lowercase topic keyword.\n"
-    "- Whenever you set next_step.type to anything other than NONE, assistant_reply must ONLY contain a short, friendly waiting message asking the user to hold for about a minute (do not ask additional questions).\n"
-    "- Keep tone respectful, culturally sensitive, and avoid medical jargon."
-)
+PRIMARY_SYSTEM_PROMPT = """
+You are Sakhi, a warm and caring community health guide supporting rural women in India.
+Speak naturally and empathetically in the user's language. Keep replies conversational (3-5 sentences) and avoid clinical jargon.
+Output strict JSON with this schema: {"language": string, "assistant_reply": string, "next_step": {"type": "NONE" | "LOCAL_DIRECTORY" | "HEALTH_KNOWLEDGE", "inputs": object}, "encourage_doctor": boolean}.
+Guidelines:
+- If symptoms are severe (heavy bleeding, high fever, severe pain, pregnancy complications, fainting, etc.), set encourage_doctor=true and clearly advise visiting a doctor. If no PIN code is known, gently ask for it instead of calling an agent.
+- Only set next_step.type to LOCAL_DIRECTORY when you already have a valid 6-digit PIN code and include it in inputs.
+- When the user mainly seeks self-care tips, set next_step.type to HEALTH_KNOWLEDGE with a concise lowercase topic keyword.
+- Whenever next_step.type is not NONE, assistant_reply must only contain a short, friendly waiting message asking the user to hold for about a minute (no follow-up questions).
+- Always follow any Preferred language instruction exactly and sound warm, respectful, and culturally sensitive.
+"""
 
-AGENT_SUMMARY_PROMPT_TEMPLATE = (
-    "You are Sakhi continuing the conversation in {language}. Blend the agent results below into a caring reply. "
-    "Reiterate key guidance, encourage doctor visits when encourage_doctor is true, and keep things warm yet concise."
-)
+AGENT_SUMMARY_PROMPT_TEMPLATE = """
+You are Sakhi continuing the same conversation in {language_label} ({language}). Blend the agent data below into a caring, natural reply. Highlight key points, encourage a doctor visit when encourage_doctor is true, and stay concise.
+"""
 
 WAITING_TRANSLATIONS: Dict[str, str] = {
     "en-IN": "Please wait about a minute while I gather trusted information...",
@@ -45,6 +41,20 @@ WAITING_TRANSLATIONS: Dict[str, str] = {
     "kn-IN": "ದಯವಿಟ್ಟು ಒಂದು ನಿಮಿಷ ಕಾಯಿರಿ, ವಿಶ್ವಾಸಾರ್ಹ ಮಾಹಿತಿಯನ್ನು ತರ್ತಿದ್ದೇನೆ...",
     "pa-IN": "ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਮਿੰਟ ਠਹਿਰੋ, ਮੈਂ ਭਰੋਸੇਮੰਦ ਜਾਣਕਾਰੀ ਲੈ ਰਹੀ ਹਾਂ...",
     "ur-IN": "براہ کرم ایک منٹ انتظار کریں، میں قابلِ بھروسہ معلومات لا رہی ہوں...",
+}
+
+LANGUAGE_LABELS: Dict[str, str] = {
+    "en-IN": "English",
+    "hi-IN": "Hindi",
+    "bn-IN": "Bengali",
+    "te-IN": "Telugu",
+    "ta-IN": "Tamil",
+    "ml-IN": "Malayalam",
+    "mr-IN": "Marathi",
+    "gu-IN": "Gujarati",
+    "kn-IN": "Kannada",
+    "pa-IN": "Punjabi",
+    "ur-IN": "Urdu",
 }
 
 
@@ -207,8 +217,14 @@ class SakhiAssistant:
                 GroqMessage(role="system", content=f"Known context: {context_hint}")
             )
         if language_hint:
+            label = self._language_label(language_hint)
             messages.append(
-                GroqMessage(role="system", content=f"Preferred language: {language_hint}")
+                GroqMessage(
+                    role="system",
+                    content=(
+                        f"Preferred language: {language_hint}. Respond only in {label} using a warm, caring tone."
+                    ),
+                )
             )
         messages.extend(conversation)
         return messages
@@ -263,8 +279,20 @@ class SakhiAssistant:
         agent_output: str,
         encourage_doctor: bool,
     ) -> str:
-        summary_prompt = AGENT_SUMMARY_PROMPT_TEMPLATE.format(language=language)
+        label = self._language_label(language)
+        summary_prompt = AGENT_SUMMARY_PROMPT_TEMPLATE.format(
+            language=language,
+            language_label=label,
+        )
         history = self._memory_as_messages()
+        history.append(
+            GroqMessage(
+                role="system",
+                content=(
+                    f"Preferred language: {language}. Respond only in {label} with a warm, supportive tone."
+                ),
+            )
+        )
         agent_context = json.dumps(
             {
                 "agent_name": agent_name,
@@ -277,12 +305,12 @@ class SakhiAssistant:
         history.append(
             GroqMessage(
                 role="user",
-                content=f"AGENT_DATA::{agent_context}\nकृपया ऊपर के तथ्यों को उपयोगकर्ता की भाषा में संक्षेप में साझा करें।",
+                content=f"AGENT_DATA::{agent_context}\nकृपया ऊपर की जानकारी को उपयोगकर्ता की भाषा में सहज और देखभाल भरे तरीके से साझा करें।",
             )
         )
         response = self.groq_client.complete(
             history,
-            temperature=0.4,
+            temperature=0.35,
             max_tokens=500,
         )
         return self.groq_client.extract_message_text(response)
@@ -297,7 +325,7 @@ class SakhiAssistant:
         return json.dumps({"known_pincode": pincode})
 
     def _latest_pincode(self) -> Optional[str]:
-        pattern = re.compile(r"\b[1-9][0-9]{5}\b")
+        pattern = re.compile(r"[1-9][0-9]{5}")
         for turn in reversed(self.memory.history):
             match = pattern.search(turn.content)
             if match:
@@ -319,6 +347,10 @@ class SakhiAssistant:
     @staticmethod
     def _is_valid_pincode(value: str) -> bool:
         return bool(re.fullmatch(r"[1-9][0-9]{5}", value or ""))
+
+    @staticmethod
+    def _language_label(language_code: str) -> str:
+        return LANGUAGE_LABELS.get(language_code, language_code)
 
 
 __all__ = ["SakhiAssistant", "AssistantTurnResult"]

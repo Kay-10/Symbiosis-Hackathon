@@ -30,6 +30,27 @@ SUPPORTED_LANGUAGES: Dict[str, str] = {
 
 FALLBACK_LANGUAGE = "en-IN"
 
+_ROMANIZED_HINDI_TOKENS = {
+    "mai",
+    "main",
+    "meri",
+    "mera",
+    "nahin",
+    "nahi",
+    "haan",
+    "kyu",
+    "kyun",
+    "kyon",
+    "dard",
+    "bimar",
+    "thik",
+    "theek",
+    "sar",
+    "sir",
+    "pet",
+    "khana",
+}
+
 
 @dataclass(frozen=True)
 class LanguageDecision:
@@ -48,19 +69,33 @@ class LanguageRouter:
             return LanguageDecision(self.default_language, "Empty input")
 
         if detect is None:
+            inferred = self._heuristic_language(user_text)
             return LanguageDecision(
-                self.default_language,
-                "langdetect not installed; falling back to default",
+                inferred,
+                "langdetect not installed; heuristic applied",
             )
         try:
             lang_code = detect(user_text)
         except LangDetectException:
-            return LanguageDecision(self.default_language, "Detection error")
+            inferred = self._heuristic_language(user_text)
+            return LanguageDecision(inferred, "Detection error; heuristic applied")
 
         mapped = SUPPORTED_LANGUAGES.get(lang_code)
         if mapped:
             return LanguageDecision(mapped, f"Detected {lang_code}")
+
+        inferred = self._heuristic_language(user_text)
+        if inferred != self.default_language:
+            return LanguageDecision(inferred, f"Heuristic override for romanized text from {lang_code}")
         return LanguageDecision(self.default_language, f"Unsupported {lang_code}")
+
+    def _heuristic_language(self, user_text: str) -> str:
+        lowered = user_text.lower()
+        tokens = lowered.split()
+        score_hi = sum(1 for token in tokens if token in _ROMANIZED_HINDI_TOKENS)
+        if score_hi >= 1:
+            return SUPPORTED_LANGUAGES["hi"]
+        return self.default_language
 
 
 __all__ = ["LanguageRouter", "LanguageDecision", "SUPPORTED_LANGUAGES"]
