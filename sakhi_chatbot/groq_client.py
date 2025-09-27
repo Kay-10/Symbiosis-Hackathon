@@ -16,7 +16,7 @@ import time
 import requests
 
 
-DEFAULT_GROQ_MODEL = "groq/compound"
+DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 
 
 @dataclass
