@@ -93,7 +93,7 @@ class LanguageRouter:
         lowered = user_text.lower()
         tokens = lowered.split()
         score_hi = sum(1 for token in tokens if token in _ROMANIZED_HINDI_TOKENS)
-        if score_hi >= 1:
+        if score_hi >= 2:
             return SUPPORTED_LANGUAGES["hi"]
         return self.default_language
 

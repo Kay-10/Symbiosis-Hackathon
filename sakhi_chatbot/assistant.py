@@ -137,6 +137,20 @@ LANGUAGE_LABELS: Dict[str, str] = {
     "ur-IN": "Urdu",
 }
 
+SUMMARY_HINTS: Dict[str, str] = {
+    "en-IN": "Please share the information below with the sister in caring English, keeping a warm, supportive tone.",
+    "hi-IN": "कृपया नीचे की जानकारी बहन के साथ सहज और देखभाल भरे तरीके से हिंदी में साझा करें।",
+    "bn-IN": "অনুগ্রহ করে নিচের তথ্যটি বোনের সঙ্গে যত্নশীল ভঙ্গিতে বাংলায় ভাগ করুন।",
+    "te-IN": "దయచేసి క్రింది సమాచారాన్ని సోదరితో ఆప్యాయంగా తెలుగులో పంచుకోండి.",
+    "ta-IN": "தயவுசெய்து கீழுள்ள தகவலை அக்காவுடன் அன்பான தமிழில் பகிரவும்.",
+    "ml-IN": "ദയവായി താഴെയുള്ള വിവരം സഹോദരിയോട് കരുതലോടെ മലയാളത്തിൽ പങ്കിടുക.",
+    "mr-IN": "कृपया खालील माहिती बहीणीसोबत प्रेमळ मराठीत सांगा.",
+    "gu-IN": "કૃપા કરીને નીચેની માહિતી બહેન સાથે પ્રેમથી ગુજરાતીમાં વહેંચો.",
+    "kn-IN": "ದಯವಿಟ್ಟು ಕೆಳಗಿನ ಮಾಹಿತಿಯನ್ನು ಸಹೋದರಿಯ ಜೊತೆ ಮಮತೆಯಿಂದ ಕನ್ನಡದಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ.",
+    "pa-IN": "ਕਿਰਪਾ ਕਰਕੇ ਹੇਠਾਂ ਦਿੱਤੀ ਜਾਣਕਾਰੀ ਬਹਿਨ ਨਾਲ ਪਿਆਰ ਨਾਲ ਪੰਜਾਬੀ ਵਿੱਚ ਸਾਂਝੀ ਕਰੋ।",
+    "ur-IN": "براہ کرم نیچے دی گئی معلومات بہن کے ساتھ پیار سے اردو میں شیئر کریں۔",
+}
+
 
 @dataclass
 class AgentDirective:
@@ -538,10 +552,11 @@ class SakhiAssistant:
             agent_type = "LOCAL_DIRECTORY"
             inputs = {"pincode": latest_pin}
 
+        language_selected = language_hint or payload.get("language", "en-IN")
         directive = GroqDirective(
-            language=payload.get("language", language_hint or "en-IN"),
+            language=language_selected,
             assistant_reply=assistant_text or WAITING_TRANSLATIONS.get(
-                language_hint or "en-IN", WAITING_TRANSLATIONS["en-IN"]
+                language_selected, WAITING_TRANSLATIONS["en-IN"]
             ),
             next_step=AgentDirective(type=agent_type, inputs=inputs),
             encourage_doctor=encourage_flag,
@@ -651,10 +666,11 @@ class SakhiAssistant:
             },
             ensure_ascii=False,
         )
+        summary_hint = SUMMARY_HINTS.get(language, SUMMARY_HINTS["en-IN"])
         history.append(
             GroqMessage(
                 role="user",
-                content=f"AGENT_DATA::{agent_context}\nकृपया ऊपर की जानकारी को उपयोगकर्ता की भाषा में सहज और देखभाल भरे तरीके से साझा करें।",
+                content=f"AGENT_DATA::{agent_context}\n{summary_hint}",
             )
         )
         response = self.groq_client.complete(
