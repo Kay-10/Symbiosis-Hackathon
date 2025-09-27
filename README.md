@@ -10,13 +10,14 @@ Sakhi is a conversational healthcare assistant designed for rural women in India
   - `HEALTH_KNOWLEDGE` references vetted summaries (`sakhi_chatbot/data/health_knowledge_base.json`).
 - Voice pipeline reusing the existing `SpeechRecognition` flow and optional text-to-speech playback via `pyttsx3`.
 - Encourages medical escalation when severe symptoms are detected and, when possible, shares nearby doctor options.
+- Blends curated local content with live data from trusted sources (US HHS MyHealthfinder, National Health Portal of India, UNICEF India), with graceful fallback to the offline knowledge base.
 - When a situation is critical and the PIN code is known, Sakhi automatically pulls nearby clinics from the local directory so the user instantly gets actionable help.
 
 ## Setup
 1. Ensure Python 3.9+ is available.
 2. Install dependencies:
    ```bash
-   pip install requests langdetect SpeechRecognition pyttsx3
+   pip install requests langdetect SpeechRecognition pyttsx3 beautifulsoup4
    ```
    Voice mode additionally requires microphone support (PyAudio for SpeechRecognition).
 3. Export your Groq API key:
@@ -28,6 +29,10 @@ Sakhi is a conversational healthcare assistant designed for rural women in India
    export HEALTH_INFO_API="https://example.org/health"
    ```
    The agent will call this endpoint with `?topic=<keyword>` and merge the response with the offline knowledge base.
+5. *(Optional)* To use the built-in National Health Portal/UNICEF HTML scrapers, install `lxml` for better parsing accuracy:
+   ```bash
+   pip install lxml
+   ```
 
 ## Running Sakhi
 ### Text mode (default)

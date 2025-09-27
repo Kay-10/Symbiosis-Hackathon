@@ -7,17 +7,16 @@ worrying about HTTP details or system prompts.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import json
 import os
 import time
-from typing import Any
 
 import requests
 
 
-DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
+DEFAULT_GROQ_MODEL = "groq/compound"
 
 
 @dataclass
@@ -62,7 +61,7 @@ class GroqChatClient:
         *,
         max_tokens: int = 1024,
         temperature: float = 0.7,
-    ) -> Dict[str, object]:
+    ) -> Dict[str, Any]:
         return {
             "model": self.model,
             "messages": [message.__dict__ for message in messages],
@@ -78,6 +77,7 @@ class GroqChatClient:
         temperature: float = 0.5,
         retry_attempts: int = 2,
         retry_backoff_seconds: float = 1.5,
+        response_format: Optional[Dict[str, str]] = None,
     ) -> Dict[str, object]:
         """Send chat completion request to Groq and return the parsed JSON."""
 
@@ -86,6 +86,8 @@ class GroqChatClient:
             max_tokens=max_tokens,
             temperature=temperature,
         )
+        if response_format:
+            payload["response_format"] = response_format
         url = "https://api.groq.com/openai/v1/chat/completions"
 
         last_error: Optional[str] = None
@@ -118,12 +120,14 @@ class GroqChatClient:
         *,
         max_tokens: int = 1024,
         temperature: float = 0.4,
+        response_format: Optional[Dict[str, str]] = None,
     ) -> Dict[str, object]:
         messages = [GroqMessage(role="system", content=system_prompt)] + conversation
         return self.complete(
             messages,
             max_tokens=max_tokens,
             temperature=temperature,
+            response_format=response_format,
         )
 
     @staticmethod

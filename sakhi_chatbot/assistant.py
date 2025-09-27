@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
@@ -16,18 +16,15 @@ from .memory import ConversationMemory
 PRIMARY_SYSTEM_PROMPT = (
     "You are Sakhi, a warm and caring community health guide supporting rural women in India. "
     "Speak naturally in the user's language (BCP-47). Start with empathy, ask gentle follow-up "
-    "questions when needed, and keep responses conversational (3-5 sentences)."
+    "questions when needed, and keep responses conversational (roughly 3-5 sentences)."
     "\nOutput strict JSON with this schema: {\"language\": string, \"assistant_reply\": string, "
     "\"next_step\": {\"type\": \"NONE\" | \"LOCAL_DIRECTORY\" | \"HEALTH_KNOWLEDGE\", \"inputs\": object}, "
     "\"encourage_doctor\": boolean}."
     "\nGuidelines:\n"
-    "- If symptoms are severe (heavy bleeding, high fever, severe pain, pregnancy complications, fainting, etc.), "
-    "set encourage_doctor=true and clearly advise visiting a doctor. If you don't yet have a PIN code, politely ask "
-    "for it instead of calling an agent.\n"
-    "- Only set next_step.type to LOCAL_DIRECTORY when you already know a valid PIN code (6 digit). Include it in inputs.\n"
-    "- When the user mainly seeks self-care tips, set next_step.type to HEALTH_KNOWLEDGE with a concise lowercase topic.\n"
-    "- Whenever you plan to call any agent (next_step.type != \"NONE\"), add a friendly sentence in assistant_reply "
-    "asking the user to wait about a minute while you gather trusted information.\n"
+    "- If symptoms are severe (heavy bleeding, high fever, severe pain, pregnancy complications, fainting, etc.), set encourage_doctor=true and clearly advise visiting a doctor. If you do not yet have a PIN code, politely request it instead of calling an agent.\n"
+    "- Only set next_step.type to LOCAL_DIRECTORY when you already know a valid 6-digit PIN code and include it in inputs.\n"
+    "- When the user mainly seeks self-care tips, set next_step.type to HEALTH_KNOWLEDGE with a concise lowercase topic keyword.\n"
+    "- Whenever you set next_step.type to anything other than NONE, assistant_reply must ONLY contain a short, friendly waiting message asking the user to hold for about a minute (do not ask additional questions).\n"
     "- Keep tone respectful, culturally sensitive, and avoid medical jargon."
 )
 
@@ -41,7 +38,7 @@ WAITING_TRANSLATIONS: Dict[str, str] = {
     "hi-IN": "कृपया एक मिनट प्रतीक्षा करें, मैं भरोसेमंद जानकारी जुटा रही हूँ...",
     "bn-IN": "অনুগ্রহ করে এক মিনিট অপেক্ষা করুন, আমি নির্ভরযোগ্য তথ্য খুঁজে আনছি...",
     "te-IN": "దయచేసి ఒక నిమిషం వేచి ఉండండి, నమ్మదగిన సమాచారం తెస్తున్నాను...",
-    "ta-IN": "ஒரு நிமிடம் காத்திருக்கவும், நம்பகமான தகவலை தேடிக்கொண்டு இருக்கிறேன்...",
+    "ta-IN": "ஒரு நிமிடம் காத்திருக்கவும், நம்பகமான தகவலை தேடிக்கொண்டு வருகிறேன்...",
     "ml-IN": "ഒരു മിനിറ്റ് കാത്തിരിക്കൂ, വിശ്വസനീയമായ വിവരങ്ങൾ ശേഖരിക്കുകയാണ്...",
     "mr-IN": "कृपया एक मिनिट थांबा, मी खात्रीशीर माहिती गोळा करत आहे...",
     "gu-IN": "મહેરબાની કરીને એક મિનિટ રાહ જુઓ, હું વિશ્વસનીય માહિતી શોધી રહી છું...",
@@ -54,11 +51,7 @@ WAITING_TRANSLATIONS: Dict[str, str] = {
 @dataclass
 class AgentDirective:
     type: str = "NONE"
-    inputs: Dict[str, str] = None  # type: ignore[assignment]
-
-    def __post_init__(self) -> None:
-        if self.inputs is None:
-            self.inputs = {}
+    inputs: Dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -136,7 +129,7 @@ class SakhiAssistant:
         agent_output = self._run_agent(directive.next_step)
         if not agent_output:
             agent_output = (
-                "इस समय भरोसेमंद जानकारी प्राप्त नहीं हो पाई। कृपया नजदीकी डॉक्टर या आशा कार्यकर्ता से सीधे संपर्क करें।"
+                "इस समय भरोसेमंद जानकारी प्राप्त नहीं हो पाई। कृपया नज़दीकी डॉक्टर या आशा कार्यकर्ता से सीधे संपर्क करें।"
             )
 
         agent_summary = self._summarise_agent_response(
@@ -167,6 +160,46 @@ class SakhiAssistant:
         *,
         language_hint: Optional[str] = None,
     ) -> GroqDirective:
+        messages = self._build_prompt_messages(conversation, language_hint)
+        payload = self._complete_with_json(messages)
+
+        next_payload = payload.get("next_step") or {}
+        raw_inputs = next_payload.get("inputs", {})
+        inputs = raw_inputs if isinstance(raw_inputs, dict) else {}
+
+        agent_type = next_payload.get("type", "NONE")
+        if agent_type == "LOCAL_DIRECTORY":
+            pincode = inputs.get("pincode", "").strip()
+            if not self._is_valid_pincode(pincode):
+                agent_type = "NONE"
+                inputs = {}
+        if agent_type == "HEALTH_KNOWLEDGE" and not inputs.get("topic"):
+            inputs["topic"] = self._fallback_topic()
+
+        directive = GroqDirective(
+            language=payload.get("language", language_hint or "en-IN"),
+            assistant_reply=payload.get(
+                "assistant_reply",
+                WAITING_TRANSLATIONS.get(
+                    language_hint or "en-IN", WAITING_TRANSLATIONS["en-IN"]
+                ),
+            ),
+            next_step=AgentDirective(type=agent_type, inputs=inputs),
+            encourage_doctor=bool(payload.get("encourage_doctor", False)),
+        )
+
+        if directive.next_step.type != "NONE":
+            wait_text = WAITING_TRANSLATIONS.get(
+                directive.language, WAITING_TRANSLATIONS["en-IN"]
+            )
+            directive.assistant_reply = wait_text
+        return directive
+
+    def _build_prompt_messages(
+        self,
+        conversation: List[GroqMessage],
+        language_hint: Optional[str],
+    ) -> List[GroqMessage]:
         messages: List[GroqMessage] = [GroqMessage(role="system", content=PRIMARY_SYSTEM_PROMPT)]
         context_hint = self._context_hint()
         if context_hint:
@@ -178,44 +211,40 @@ class SakhiAssistant:
                 GroqMessage(role="system", content=f"Preferred language: {language_hint}")
             )
         messages.extend(conversation)
+        return messages
 
-        response = self.groq_client.complete(
-            messages,
-            temperature=0.45,
-            max_tokens=700,
-        )
-        raw_text = self.groq_client.extract_message_text(response)
-        try:
-            payload = json.loads(raw_text)
-        except json.JSONDecodeError as exc:
-            raise GroqAPIError(f"Groq returned non-JSON payload: {raw_text}") from exc
-
-        next_payload = payload.get("next_step") or {}
-        directive = GroqDirective(
-            language=payload.get("language", language_hint or "en-IN"),
-            assistant_reply=payload.get(
-                "assistant_reply",
-                WAITING_TRANSLATIONS.get(language_hint or "en-IN", WAITING_TRANSLATIONS["en-IN"]),
+    def _complete_with_json(self, messages: List[GroqMessage]) -> Dict[str, object]:
+        reminder = GroqMessage(
+            role="system",
+            content=(
+                "Reminder: respond ONLY with valid JSON matching the specified schema. Do not add explanations."
             ),
-            next_step=AgentDirective(
-                type=next_payload.get("type", "NONE"),
-                inputs=next_payload.get("inputs", {}),
-            ),
-            encourage_doctor=bool(payload.get("encourage_doctor", False)),
         )
-
-        if directive.next_step.type != "NONE":
-            wait_text = WAITING_TRANSLATIONS.get(
-                directive.language, WAITING_TRANSLATIONS["en-IN"]
+        working_messages = list(messages)
+        last_error: Optional[GroqAPIError] = None
+        for _ in range(3):
+            response = self.groq_client.complete(
+                working_messages,
+                temperature=0.3,
+                max_tokens=700,
+                response_format={"type": "json_object"},
             )
-            if wait_text not in directive.assistant_reply:
-                directive.assistant_reply = f"{directive.assistant_reply} {wait_text}".strip()
-        return directive
+            raw_text = self.groq_client.extract_message_text(response)
+            try:
+                return json.loads(raw_text)
+            except json.JSONDecodeError:
+                last_error = GroqAPIError(
+                    f"Groq returned non-JSON payload: {raw_text}"
+                )
+                working_messages.insert(1, reminder)
+        if last_error:
+            raise last_error
+        raise GroqAPIError("Groq did not provide valid JSON response")
 
     def _run_agent(self, directive: AgentDirective) -> Optional[str]:
         if directive.type == "LOCAL_DIRECTORY":
             pincode = directive.inputs.get("pincode", "").strip()
-            if not pincode:
+            if not self._is_valid_pincode(pincode):
                 return None
             return self.local_agent.formatted_directory(pincode)
         if directive.type == "HEALTH_KNOWLEDGE":
@@ -246,7 +275,10 @@ class SakhiAssistant:
             ensure_ascii=False,
         )
         history.append(
-            GroqMessage(role="system", content=f"AGENT_DATA::{agent_context}")
+            GroqMessage(
+                role="user",
+                content=f"AGENT_DATA::{agent_context}\nकृपया ऊपर के तथ्यों को उपयोगकर्ता की भाषा में संक्षेप में साझा करें।",
+            )
         )
         response = self.groq_client.complete(
             history,
@@ -273,13 +305,20 @@ class SakhiAssistant:
         return None
 
     def _fallback_topic(self) -> str:
+        ignore = {"nahi", "nahin", "no", "haan", "yes", "the", "aur"}
+        pattern = re.compile(r"[A-Za-z]+")
         for turn in reversed(self.memory.history):
-            cleaned = turn.content.strip().lower()
-            if cleaned:
-                for token in cleaned.split():
-                    if token.isalpha():
-                        return token
+            if turn.role != "user":
+                continue
+            tokens = [match.group(0).lower() for match in pattern.finditer(turn.content)]
+            for token in tokens:
+                if token not in ignore:
+                    return token
         return "health"
+
+    @staticmethod
+    def _is_valid_pincode(value: str) -> bool:
+        return bool(re.fullmatch(r"[1-9][0-9]{5}", value or ""))
 
 
 __all__ = ["SakhiAssistant", "AssistantTurnResult"]
