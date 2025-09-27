@@ -10,15 +10,17 @@ from threading import Lock
 from typing import Dict, List, Optional
 
 import speech_recognition as sr
+import edge_tts
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from .assistant import SakhiAssistant
 from .groq_client import GroqChatClient, GroqAPIError
+from .language import LanguageRouter
 from .memory import ConversationMemory
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
@@ -87,6 +89,21 @@ class SessionManager:
 
 
 session_manager = SessionManager()
+language_router = LanguageRouter()
+VOICE_MAP = {
+    "hi-IN": "hi-IN-SwaraNeural",
+    "mr-IN": "mr-IN-AarohiNeural",
+    "en-IN": "en-IN-NeerjaNeural",
+    "bn-IN": "bn-IN-TanishaaNeural",
+    "ta-IN": "ta-IN-PriyaNeural",
+    "te-IN": "te-IN-ShrutiNeural",
+    "ml-IN": "ml-IN-SobhanaNeural",
+    "gu-IN": "gu-IN-DhwaniNeural",
+    "kn-IN": "kn-IN-SapnaNeural",
+    "pa-IN": "pa-IN-AmarDeepNeural",
+    "ur-IN": "ur-IN-GulNeural",
+}
+DEFAULT_VOICE = "en-IN-NeerjaNeural"
 app = FastAPI(title="Sakhi Voice Companion", version="1.0.0")
 
 app.add_middleware(
@@ -145,6 +162,33 @@ async def chat(request: ChatRequest) -> ChatResponse:
         encourage_doctor=result.encourage_doctor,
         history=history,
     )
+
+
+class SpeakRequest(BaseModel):
+    text: str
+
+
+async def _generate_tts_audio(text: str, voice: str) -> bytes:
+    communicate = edge_tts.Communicate(text, voice)
+    audio_bytes = bytearray()
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            audio_bytes.extend(chunk["data"])
+    return bytes(audio_bytes)
+
+
+@app.post("/api/speak")
+async def speak(payload: SpeakRequest) -> StreamingResponse:
+    message = payload.text.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Empty text")
+    language_code = language_router.detect_language(message).language_code
+    voice = VOICE_MAP.get(language_code, DEFAULT_VOICE)
+    try:
+        audio_bytes = await _generate_tts_audio(message, voice)
+    except Exception as exc:  # pragma: no cover - network/remote errors
+        raise HTTPException(status_code=502, detail=f"TTS generation failed: {exc}")
+    return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")
 
 
 @app.post("/api/transcribe")

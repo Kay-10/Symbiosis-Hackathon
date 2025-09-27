@@ -14,10 +14,12 @@ const state = {
   stream: null,
   currentController: null,
   speakingUtterance: null,
+  speakingAudio: null,
 };
 
 const elements = {
   status: document.getElementById("status-pill"),
+  statusCaption: document.getElementById("status-caption"),
   messageList: document.getElementById("message-list"),
   textInput: document.getElementById("text-input"),
   sendBtn: document.getElementById("send-btn"),
@@ -25,6 +27,9 @@ const elements = {
   stopBtn: document.getElementById("stop-btn"),
   messageTemplate: document.getElementById("message-template"),
   chatWindow: document.getElementById("chat-window"),
+  typingIndicator: document.getElementById("typing-indicator"),
+  quickReplies: document.getElementById("quick-replies"),
+  scrollBottom: document.getElementById("scroll-bottom"),
 };
 
 async function init() {
@@ -69,12 +74,29 @@ function bindEvents() {
 
   elements.talkBtn.addEventListener("click", startRecording);
   elements.stopBtn.addEventListener("click", stopInteraction);
+  const restartBtn = document.getElementById("restart-btn");
+  if (restartBtn) {
+    restartBtn.addEventListener("click", restartSession);
+  }
+  if (elements.scrollBottom) {
+    elements.scrollBottom.addEventListener("click", () => scrollToBottom(true));
+  }
+  elements.chatWindow.addEventListener("scroll", handleScrollShadow);
+  const themeBtn = document.getElementById("theme-btn");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", cycleTheme);
+  }
+  // restore theme
+  const savedTheme = localStorage.getItem("sakhiTheme") || "blossom";
+  setTheme(savedTheme);
 }
 
 function renderMessages() {
   elements.messageList.innerHTML = "";
   state.messages.forEach((entry) => appendMessage(entry.role, entry.content));
   scrollToBottom();
+  updateQuickReplies();
+  handleScrollShadow();
 }
 
 function appendMessage(role, content) {
@@ -94,8 +116,20 @@ function scrollToBottom() {
 }
 
 function setStatus(label, variant = "ready") {
+  if (!elements.status) return;
   elements.status.textContent = label;
-  elements.status.classList.toggle("busy", variant === "busy");
+  elements.status.className = `status-pill status-${variant}`;
+  if (elements.statusCaption) {
+    if (variant === "busy") {
+      elements.statusCaption.textContent = "Sakhi is preparing a caring response for you.";
+    } else if (variant === "speaking") {
+      elements.statusCaption.textContent = "Please listen while Sakhi shares the guidance.";
+    } else if (variant === "listening") {
+      elements.statusCaption.textContent = "Share what you are feeling—Sakhi is listening closely.";
+    } else {
+      elements.statusCaption.textContent = "Tap talk and share how you are feeling. Sakhi will respond in the same language.";
+    }
+  }
 }
 
 function setControls({ recording = state.recording, processing = state.processing }) {
@@ -107,12 +141,20 @@ function setControls({ recording = state.recording, processing = state.processin
   elements.textInput.disabled = processing;
   elements.stopBtn.disabled = !recording && !processing;
 
+  elements.talkBtn.classList.toggle("is-recording", recording);
+  elements.talkBtn.classList.toggle("is-disabled", processing && !recording);
+  if (elements.typingIndicator) {
+    const shouldShow =
+      processing && !recording && !state.speakingUtterance && !state.speakingAudio;
+    elements.typingIndicator.classList.toggle("visible", shouldShow);
+  }
+
   if (recording) {
-    setStatus("Listening…", "busy");
+    setStatus("Listening…", "listening");
   } else if (processing) {
     setStatus("Working…", "busy");
   } else {
-    setStatus("Ready");
+    setStatus("Ready", "ready");
   }
 }
 
@@ -145,6 +187,7 @@ async function handleUserMessage(message, mode) {
     state.messages = data.history || [];
     renderMessages();
     speakText(data.assistant_message, data.language);
+    updateQuickReplies(data.assistant_message);
   } catch (error) {
     if (error.name !== "AbortError") {
       appendMessage("assistant", "मुझे कनेक्शन में परेशानी हो रही है, कृपया थोड़ी देर बाद प्रयास करें।");
@@ -155,10 +198,54 @@ async function handleUserMessage(message, mode) {
     }
   } finally {
     state.currentController = null;
-    if (!state.speakingUtterance) {
+    if (!state.speakingUtterance && !state.speakingAudio) {
       setControls({ processing: false, recording: false });
     }
   }
+}
+
+function handleScrollShadow() {
+  if (!elements.scrollBottom) return;
+  const nearBottom =
+    elements.chatWindow.scrollHeight - elements.chatWindow.scrollTop - elements.chatWindow.clientHeight < 50;
+  elements.scrollBottom.style.visibility = nearBottom ? "hidden" : "visible";
+}
+
+function makeChip(label, payload) {
+  const b = document.createElement("button");
+  b.className = "chip";
+  b.textContent = label;
+  b.addEventListener("click", () => handleUserMessage(payload, "chip"));
+  return b;
+}
+
+function updateQuickReplies(latestAssistantText) {
+  if (!elements.quickReplies) return;
+  elements.quickReplies.innerHTML = "";
+  const last = latestAssistantText || (state.messages.length ? state.messages[state.messages.length - 1].content : "");
+  const text = (last || "").toLowerCase();
+  const yesnoPatterns = [
+    "is that correct",
+    "reply with yes or no",
+    "क्या यह सही है",
+    "हाँ या नहीं",
+  ];
+  if (yesnoPatterns.some((p) => text.includes(p))) {
+    elements.quickReplies.appendChild(makeChip("Yes", "Yes"));
+    elements.quickReplies.appendChild(makeChip("No", "No"));
+  }
+}
+
+function setTheme(name) {
+  document.documentElement.setAttribute("data-theme", name);
+  localStorage.setItem("sakhiTheme", name);
+}
+
+function cycleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") || "blossom";
+  const themes = ["blossom", "teal", "charcoal"];
+  const idx = (themes.indexOf(current) + 1) % themes.length;
+  setTheme(themes[idx]);
 }
 
 async function startRecording() {
@@ -402,29 +489,109 @@ function stopSpeech() {
     window.speechSynthesis.cancel();
     state.speakingUtterance = null;
   }
+  if (state.speakingAudio) {
+    const { audio, url } = state.speakingAudio;
+    try {
+      audio.pause();
+    } catch (_) {
+      /* ignore */
+    }
+    URL.revokeObjectURL(url);
+    state.speakingAudio = null;
+  }
 }
 
-function speakText(text, language) {
-  if (!("speechSynthesis" in window)) {
+async function speakText(text, language) {
+  stopSpeech();
+  if (!text || !text.trim()) {
+    setControls({ processing: false, recording: false });
     return;
   }
-  stopSpeech();
+  setControls({ processing: true, recording: false });
+  setStatus("Preparing voice…", "busy");
+  try {
+    const res = await fetch("/api/speak", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      throw new Error("tts-fetch-failed");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    state.speakingAudio = { audio, url };
+    if (elements.typingIndicator) {
+      elements.typingIndicator.classList.remove("visible");
+    }
+    audio.onplay = () => {
+      setStatus("Speaking…", "speaking");
+    };
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      state.speakingAudio = null;
+      setControls({ processing: false, recording: false });
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      state.speakingAudio = null;
+      setControls({ processing: false, recording: false });
+    };
+    await audio.play();
+  } catch (error) {
+    console.warn("Falling back to native speech synthesis", error);
+    fallbackSpeak(text, language);
+  }
+}
+
+function fallbackSpeak(text, language) {
+  if (!("speechSynthesis" in window)) {
+    setControls({ processing: false, recording: false });
+    return;
+  }
   const utterance = new SpeechSynthesisUtterance(text);
   if (language) {
     utterance.lang = language;
   }
   utterance.rate = 0.95;
   utterance.pitch = 1;
+  state.speakingUtterance = utterance;
   utterance.onstart = () => {
+    if (elements.typingIndicator) {
+      elements.typingIndicator.classList.remove("visible");
+    }
     setControls({ processing: true, recording: false });
-    setStatus("Speaking…", "busy");
+    setStatus("Speaking…", "speaking");
   };
   utterance.onend = () => {
     state.speakingUtterance = null;
     setControls({ processing: false, recording: false });
   };
-  state.speakingUtterance = utterance;
   window.speechSynthesis.speak(utterance);
 }
 
 init();
+
+async function restartSession() {
+  stopInteraction();
+  stopSpeech();
+  if (state.currentController) {
+    state.currentController.abort();
+    state.currentController = null;
+  }
+  setControls({ recording: false, processing: true });
+  setStatus("Creating new session…", "busy");
+  try {
+    const res = await fetch("/api/session", { method: "POST" });
+    const data = await res.json();
+    state.sessionId = data.session_id;
+    localStorage.setItem("sakhiSessionId", state.sessionId);
+    state.messages = [];
+    renderMessages();
+  } catch (error) {
+    appendMessage("assistant", "Unable to restart session right now.");
+  } finally {
+    setControls({ recording: false, processing: false });
+  }
+}

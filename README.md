@@ -15,7 +15,7 @@ Sakhi is a conversational healthcare companion crafted for rural women in India.
 1. Ensure Python 3.9+ is installed.
 2. Install dependencies:
    ```bash
-   pip install requests langdetect SpeechRecognition fastapi uvicorn python-multipart beautifulsoup4
+   pip install requests langdetect SpeechRecognition fastapi uvicorn python-multipart beautifulsoup4 edge-tts
    ```
    For best results with the HTML scrapers also install:
    ```bash
@@ -41,7 +41,7 @@ python3 main.py
 ```bash
 uvicorn sakhi_chatbot.web_app:app --reload
 ```
-Open http://localhost:8000 and use the **Talk** button for voice conversations or type messages directly. Spoken turns and typed turns share the same chat history, and responses are read aloud in the detected language. While Sakhi is processing or speaking, the Talk button is temporarily disabled; you can always press **Stop** to cancel and start a fresh recording.
+Open http://localhost:8000 and use the **Talk** button for voice conversations or type messages directly. Spoken turns and typed turns share the same chat history, and responses are read aloud in the detected language. While Sakhi is processing or speaking, the Talk button is temporarily disabled; you can always press **Stop** to cancel and start a fresh recording. The web companion streams natural Microsoft neural voices (via `edge-tts`) and automatically picks Hindi, Marathi, or English based on what you say.
 
 ## Customising data sources
 - Enrich `sakhi_chatbot/data/local_health_directory.json` with more clinics keyed by PIN code.
