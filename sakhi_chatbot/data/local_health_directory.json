@@ -1,0 +1,36 @@
+{
+  "560001": [
+    {
+      "name": "Namma Clinic MG Road",
+      "address": "12 MG Road, Bengaluru, Karnataka",
+      "phone": "+91-80-2345-6789",
+      "hours": "Mon-Sat 9am-6pm",
+      "notes": "Primary care clinic with maternal health counsellor"
+    },
+    {
+      "name": "Sakhi Mahila Health Centre",
+      "address": "23 Church Street, Shivajinagar",
+      "phone": "+91-80-2234-5566",
+      "hours": "Daily 8am-8pm",
+      "notes": "Offers free anaemia screening every Wednesday"
+    }
+  ],
+  "110002": [
+    {
+      "name": "Delhi Government Dispensary",
+      "address": "Bazar Lane, Daryaganj, New Delhi",
+      "phone": "+91-11-2323-1212",
+      "hours": "Mon-Sat 8am-4pm",
+      "notes": "Gynaecology OPD on Tuesdays and Fridays"
+    }
+  ],
+  "400001": [
+    {
+      "name": "Lok Seva Clinic",
+      "address": "Fort Road, Mumbai",
+      "phone": "+91-22-2201-1122",
+      "hours": "Mon-Sat 10am-7pm",
+      "notes": "Tie-up with JJ Hospital for emergency referrals"
+    }
+  ]
+}

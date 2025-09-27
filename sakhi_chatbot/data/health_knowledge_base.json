@@ -1,0 +1,20 @@
+{
+  "anaemia": {
+    "title": "Managing Iron Deficiency Anaemia",
+    "summary": "Include iron rich foods such as leafy greens, bajra, jaggery, and pulses. Pair with vitamin C sources like lemon to support absorption. Seek medical review if you feel dizzy, extremely tired, or notice swelling.",
+    "source": "Ministry of Health & Family Welfare, Government of India",
+    "url": "https://www.nhp.gov.in/disease/gynaecology-and-obstetrics/anaemia"
+  },
+  "prenatal": {
+    "title": "Essential Antenatal Care",
+    "summary": "Register your pregnancy at the nearest health centre, attend all antenatal check-ups, take iron-folic acid tablets daily, and get vaccinated for tetanus. Contact a doctor immediately for heavy bleeding, severe headache, or fever.",
+    "source": "World Health Organization",
+    "url": "https://www.who.int/health-topics/maternal-health"
+  },
+  "breastfeeding": {
+    "title": "Breastfeeding Guidance",
+    "summary": "Initiate breastfeeding within one hour of birth and continue exclusively for six months. Ensure proper latch to avoid pain. Drink clean water and eat balanced meals. Seek help from a lactation counsellor or ASHA worker for difficulties.",
+    "source": "UNICEF India",
+    "url": "https://www.unicef.org/india/what-we-do/breastfeeding"
+  }
+}
