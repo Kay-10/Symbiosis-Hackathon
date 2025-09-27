@@ -7,64 +7,160 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Hind:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <div class="backdrop"></div>
-    <div class="app-page">
-      <header class="topbar">
-        <div class="brand">
-          <div class="mark">🌸</div>
-          <div class="titles">
-            <h1>Sakhi</h1>
-            <span class="sub">Care with empathy</span>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="brand">
+            <div class="brand-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L15.5 8.5L22 9L17 14L18.5 21L12 17.5L5.5 21L7 14L2 9L8.5 8.5L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <h1>Sakhi</h1>
+              <p>Your caring health companion</p>
+            </div>
           </div>
         </div>
-        <div class="topbar-center">
-          <div class="status-pill" id="status-pill">Ready</div>
-          <small class="status-caption" id="status-caption">Speak or type and I will reply in your language.</small>
-        </div>
-        <div class="actions">
-          <button id="theme-btn" class="ghost" title="Theme">🌓</button>
-          <button id="restart-btn" class="restart" title="Restart session">↺ Restart</button>
-        </div>
-      </header>
 
-      <main class="chat-container" id="chat-window">
-        <ul class="message-list" id="message-list"></ul>
-        <div class="typing-indicator" id="typing-indicator"><span></span><span></span><span></span></div>
-        <button id="scroll-bottom" class="fab" title="Jump to latest">⬇️</button>
+        <div class="sidebar-content">
+          <div class="status-card">
+            <div class="status-indicator">
+              <div class="status-dot" id="status-dot"></div>
+              <div class="status-text">
+                <span class="status-label" id="status-pill">Ready</span>
+                <p class="status-description" id="status-caption">Speak or type and I will reply in your language.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-actions">
+            <button id="theme-btn" class="action-btn" title="Toggle theme">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              <span>Theme</span>
+            </button>
+            <button id="restart-btn" class="action-btn restart-btn" title="Start new conversation">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>New Chat</span>
+            </button>
+          </div>
+
+          <div class="tips-section">
+            <h3>💡 Tips</h3>
+            <ul>
+              <li>Speak naturally in any language</li>
+              <li>Ask about symptoms or health concerns</li>
+              <li>Request local healthcare information</li>
+              <li>Voice responses are available</li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <main class="chat-main">
+        <div class="chat-header">
+          <div class="chat-title">
+            <h2>Chat with Sakhi</h2>
+            <div class="online-indicator">
+              <div class="pulse-dot"></div>
+              <span>Online</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chat-window">
+          <div class="messages-container">
+            <ul class="message-list" id="message-list"></ul>
+            <div class="typing-indicator" id="typing-indicator">
+              <div class="typing-avatar">
+                <div class="avatar-icon">S</div>
+              </div>
+              <div class="typing-bubble">
+                <div class="typing-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button id="scroll-bottom" class="scroll-to-bottom" title="Scroll to bottom">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 13l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="chat-input-container">
+          <div id="quick-replies" class="quick-replies" aria-live="polite"></div>
+          
+          <div class="input-wrapper">
+            <div class="text-input-container">
+              <textarea 
+                id="text-input" 
+                placeholder="Type your message here..." 
+                rows="1"
+                maxlength="1000"
+              ></textarea>
+              <div class="input-actions">
+                <button id="send-btn" class="send-btn" title="Send message">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="voice-controls">
+              <button id="talk-btn" class="voice-btn primary-voice">
+                <div class="voice-animation"></div>
+                <svg class="voice-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" stroke="currentColor" stroke-width="2"/>
+                  <path d="M19 10v1a7 7 0 0 1-14 0v-1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 18v4M8 22h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="voice-label">Talk</span>
+              </button>
+              
+              <button id="stop-btn" class="voice-btn stop-voice" disabled>
+                <svg class="voice-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <span class="voice-label">Stop</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </main>
-
-      <section class="composer">
-        <div id="quick-replies" class="quick-replies" aria-live="polite"></div>
-        <div class="input-row">
-          <textarea id="text-input" placeholder="Write your message here…" rows="2"></textarea>
-          <button id="send-btn" class="primary">Send</button>
-        </div>
-        <div class="voice-row">
-          <button id="talk-btn" class="voice primary">
-            <span class="pulse"></span>
-            <span class="icon">🎤</span>
-            <span class="label">Talk</span>
-          </button>
-          <button id="stop-btn" class="voice" disabled>
-            <span class="icon">⏹</span>
-            <span class="label">Stop</span>
-          </button>
-        </div>
-      </section>
     </div>
 
     <template id="message-template">
       <li class="message">
-        <div class="avatar"></div>
-        <div class="bubble">
-          <div class="meta"></div>
-          <div class="text"></div>
+        <div class="message-avatar">
+          <div class="avatar-icon"></div>
+        </div>
+        <div class="message-content">
+          <div class="message-header">
+            <span class="message-sender"></span>
+            <span class="message-time"></span>
+          </div>
+          <div class="message-bubble">
+            <div class="message-text"></div>
+          </div>
         </div>
       </li>
     </template>

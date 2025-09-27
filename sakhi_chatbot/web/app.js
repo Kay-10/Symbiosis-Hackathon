@@ -20,6 +20,7 @@ const state = {
 const elements = {
   status: document.getElementById("status-pill"),
   statusCaption: document.getElementById("status-caption"),
+  statusDot: document.getElementById("status-dot"),
   messageList: document.getElementById("message-list"),
   textInput: document.getElementById("text-input"),
   sendBtn: document.getElementById("send-btn"),
@@ -62,6 +63,7 @@ function bindEvents() {
     const text = elements.textInput.value.trim();
     if (!text) return;
     elements.textInput.value = "";
+    elements.textInput.style.height = "56px"; // Reset height
     handleUserMessage(text, "text");
   });
 
@@ -70,6 +72,13 @@ function bindEvents() {
       event.preventDefault();
       elements.sendBtn.click();
     }
+  });
+
+  // Auto-resize textarea
+  elements.textInput.addEventListener("input", () => {
+    elements.textInput.style.height = "auto";
+    const newHeight = Math.max(56, Math.min(elements.textInput.scrollHeight, 120));
+    elements.textInput.style.height = newHeight + "px";
   });
 
   elements.talkBtn.addEventListener("click", startRecording);
@@ -82,12 +91,17 @@ function bindEvents() {
     elements.scrollBottom.addEventListener("click", () => scrollToBottom(true));
   }
   elements.chatWindow.addEventListener("scroll", handleScrollShadow);
+  // Also listen on the messages container if it exists
+  const messagesContainer = elements.chatWindow.querySelector('.messages-container');
+  if (messagesContainer) {
+    messagesContainer.addEventListener("scroll", handleScrollShadow);
+  }
   const themeBtn = document.getElementById("theme-btn");
   if (themeBtn) {
     themeBtn.addEventListener("click", cycleTheme);
   }
   // restore theme
-  const savedTheme = localStorage.getItem("sakhiTheme") || "blossom";
+  const savedTheme = localStorage.getItem("sakhiTheme") || "light";
   setTheme(savedTheme);
 }
 
@@ -104,21 +118,42 @@ function appendMessage(role, content) {
   const root = li.querySelector(".message");
   root.classList.toggle("user", role === "user");
   root.classList.toggle("assistant", role === "assistant");
-  root.querySelector(".avatar").textContent = role === "assistant" ? "🌸" : "👩";
-  root.querySelector(".meta").textContent = role === "assistant" ? "Sakhi" : "You";
-  root.querySelector(".text").innerText = content;
+  
+  // Update avatar
+  const avatarIcon = root.querySelector(".avatar-icon");
+  avatarIcon.textContent = role === "assistant" ? "S" : "U";
+  
+  // Update message sender and content
+  root.querySelector(".message-sender").textContent = role === "assistant" ? "Sakhi" : "You";
+  root.querySelector(".message-text").innerText = content;
+  
+  // Add timestamp
+  const now = new Date();
+  const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  root.querySelector(".message-time").textContent = timeString;
+  
   elements.messageList.appendChild(li);
   scrollToBottom();
 }
 
-function scrollToBottom() {
-  elements.chatWindow.scrollTo({ top: elements.chatWindow.scrollHeight, behavior: "smooth" });
+function scrollToBottom(force = false) {
+  const messagesContainer = elements.chatWindow.querySelector('.messages-container');
+  if (messagesContainer) {
+    messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: force ? "auto" : "smooth" });
+  } else {
+    elements.chatWindow.scrollTo({ top: elements.chatWindow.scrollHeight, behavior: force ? "auto" : "smooth" });
+  }
 }
 
 function setStatus(label, variant = "ready") {
   if (!elements.status) return;
   elements.status.textContent = label;
-  elements.status.className = `status-pill status-${variant}`;
+  
+  // Update status dot
+  if (elements.statusDot) {
+    elements.statusDot.className = `status-dot ${variant}`;
+  }
+  
   if (elements.statusCaption) {
     if (variant === "busy") {
       elements.statusCaption.textContent = "Sakhi is preparing a caring response for you.";
@@ -127,7 +162,7 @@ function setStatus(label, variant = "ready") {
     } else if (variant === "listening") {
       elements.statusCaption.textContent = "Share what you are feeling—Sakhi is listening closely.";
     } else {
-      elements.statusCaption.textContent = "Tap talk and share how you are feeling. Sakhi will respond in the same language.";
+      elements.statusCaption.textContent = "Speak or type and I will reply in your language.";
     }
   }
 }
@@ -206,9 +241,10 @@ async function handleUserMessage(message, mode) {
 
 function handleScrollShadow() {
   if (!elements.scrollBottom) return;
-  const nearBottom =
-    elements.chatWindow.scrollHeight - elements.chatWindow.scrollTop - elements.chatWindow.clientHeight < 50;
-  elements.scrollBottom.style.visibility = nearBottom ? "hidden" : "visible";
+  const messagesContainer = elements.chatWindow.querySelector('.messages-container');
+  const container = messagesContainer || elements.chatWindow;
+  const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+  elements.scrollBottom.classList.toggle('visible', !nearBottom);
 }
 
 function makeChip(label, payload) {
@@ -242,8 +278,8 @@ function setTheme(name) {
 }
 
 function cycleTheme() {
-  const current = document.documentElement.getAttribute("data-theme") || "blossom";
-  const themes = ["blossom", "teal", "charcoal"];
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  const themes = ["light", "dark", "teal", "purple", "emerald"];
   const idx = (themes.indexOf(current) + 1) % themes.length;
   setTheme(themes[idx]);
 }

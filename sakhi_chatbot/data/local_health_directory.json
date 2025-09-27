@@ -1,36 +1,812 @@
 {
-  "560001": [
-    {
-      "name": "Namma Clinic MG Road",
-      "address": "12 MG Road, Bengaluru, Karnataka",
-      "phone": "+91-80-2345-6789",
-      "hours": "Mon-Sat 9am-6pm",
-      "notes": "Primary care clinic with maternal health counsellor"
-    },
-    {
-      "name": "Sakhi Mahila Health Centre",
-      "address": "23 Church Street, Shivajinagar",
-      "phone": "+91-80-2234-5566",
-      "hours": "Daily 8am-8pm",
-      "notes": "Offers free anaemia screening every Wednesday"
-    }
-  ],
-  "110002": [
-    {
-      "name": "Delhi Government Dispensary",
-      "address": "Bazar Lane, Daryaganj, New Delhi",
-      "phone": "+91-11-2323-1212",
-      "hours": "Mon-Sat 8am-4pm",
-      "notes": "Gynaecology OPD on Tuesdays and Fridays"
-    }
-  ],
-  "400001": [
-    {
-      "name": "Lok Seva Clinic",
-      "address": "Fort Road, Mumbai",
-      "phone": "+91-22-2201-1122",
-      "hours": "Mon-Sat 10am-7pm",
-      "notes": "Tie-up with JJ Hospital for emergency referrals"
-    }
-  ]
-}
+    "110001": [
+      {
+        "name": "Jeevan Jyoti Clinic",
+        "address": "179 Main Road, Connaught Place, New Delhi, Delhi",
+        "phone": "+91-646-7576349",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "110002": [
+      {
+        "name": "Nari Seva Sadan",
+        "address": "2 Main Road, Darya Ganj, New Delhi, Delhi",
+        "phone": "+91-608-9535516",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "110003": [
+      {
+        "name": "Mahila Arogya Kendra",
+        "address": "32 Main Road, Sansad Marg, New Delhi, Delhi",
+        "phone": "+91-444-4433581",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Focus on menstrual hygiene education"
+      }
+    ],
+    "110004": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "33 Main Road, New Delhi GPO, New Delhi, Delhi",
+        "phone": "+91-803-3807895",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "110005": [
+      {
+        "name": "Mahila Arogya Kendra",
+        "address": "81 Main Road, Sansad Marg Ext, New Delhi, Delhi",
+        "phone": "+91-994-9524243",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Weekly antenatal check-up camp"
+      }
+    ],
+    "110006": [
+      {
+        "name": "Grameen Clinic",
+        "address": "76 Main Road, Kashmere Gate, New Delhi, Delhi",
+        "phone": "+91-690-1441067",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Focus on menstrual hygiene education"
+      }
+    ],
+    "110007": [
+      {
+        "name": "Jeevan Jyoti Clinic",
+        "address": "171 Main Road, Barra Khana, New Delhi, Delhi",
+        "phone": "+91-283-6401945",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Weekly antenatal check-up camp"
+      }
+    ],
+    "110008": [
+      {
+        "name": "Mahila Arogya Kendra",
+        "address": "55 Main Road, Purana Qila, New Delhi, Delhi",
+        "phone": "+91-338-9644568",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "110009": [
+      {
+        "name": "Prerna Health Point",
+        "address": "113 Main Road, GPO New Delhi, New Delhi, Delhi",
+        "phone": "+91-829-1483862",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "110010": [
+      {
+        "name": "Arogya Kendra",
+        "address": "82 Main Road, Chanakyapuri, New Delhi, Delhi",
+        "phone": "+91-515-1024657",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Partnership with local ASHA workers"
+      }
+    ],
+    "400001": [
+      {
+        "name": "Nari Seva Sadan",
+        "address": "117 Main Road, Mumbai GPO, Mumbai, Maharashtra",
+        "phone": "+91-204-3236881",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Low-cost gynecological treatments"
+      }
+    ],
+    "400002": [
+      {
+        "name": "Matrika Health Centre",
+        "address": "148 Main Road, Cuffe Parade, Mumbai, Maharashtra",
+        "phone": "+91-665-3265679",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "400003": [
+      {
+        "name": "Matrika Health Centre",
+        "address": "34 Main Road, Colaba, Mumbai, Maharashtra",
+        "phone": "+91-851-7956444",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "400004": [
+      {
+        "name": "Asha Women's Clinic",
+        "address": "170 Main Road, Fort, Mumbai, Maharashtra",
+        "phone": "+91-460-2869514",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Mobile health van outreach"
+      }
+    ],
+    "400005": [
+      {
+        "name": "Matrika Health Centre",
+        "address": "14 Main Road, Fort East, Mumbai, Maharashtra",
+        "phone": "+91-404-2095432",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Low-cost gynecological treatments"
+      }
+    ],
+    "400006": [
+      {
+        "name": "Nari Seva Sadan",
+        "address": "164 Main Road, Grant Road, Mumbai, Maharashtra",
+        "phone": "+91-702-4082004",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Mobile health van outreach"
+      }
+    ],
+    "400007": [
+      {
+        "name": "Jeevan Jyoti Clinic",
+        "address": "49 Main Road, Mazgaon, Mumbai, Maharashtra",
+        "phone": "+91-417-1570492",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Weekly antenatal check-up camp"
+      }
+    ],
+    "400008": [
+      {
+        "name": "Prerna Health Point",
+        "address": "102 Main Road, Rampart Row, Mumbai, Maharashtra",
+        "phone": "+91-548-8641612",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Weekly antenatal check-up camp"
+      }
+    ],
+    "400009": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "134 Main Road, Kala Ghoda, Mumbai, Maharashtra",
+        "phone": "+91-880-9483052",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Mobile health van outreach"
+      }
+    ],
+    "400010": [
+      {
+        "name": "Arogya Kendra",
+        "address": "89 Main Road, Churchgate, Mumbai, Maharashtra",
+        "phone": "+91-822-3123921",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "500001": [
+      {
+        "name": "Prerna Health Point",
+        "address": "187 Main Road, Secunderabad GPO, Hyderabad, Telangana",
+        "phone": "+91-529-3578550",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Focus on menstrual hygiene education"
+      }
+    ],
+    "500002": [
+      {
+        "name": "Prerna Health Point",
+        "address": "53 Main Road, Saidabad, Hyderabad, Telangana",
+        "phone": "+91-131-5179761",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Outreach to tribal women for reproductive health"
+      }
+    ],
+    "500003": [
+      {
+        "name": "Seva Clinic",
+        "address": "17 Main Road, Kavadiguda, Hyderabad, Telangana",
+        "phone": "+91-429-6420362",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "500004": [
+      {
+        "name": "Asha Women's Clinic",
+        "address": "2 Main Road, Koti, Hyderabad, Telangana",
+        "phone": "+91-224-6951756",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "500005": [
+      {
+        "name": "Seva Clinic",
+        "address": "189 Main Road, Lakdikapul, Hyderabad, Telangana",
+        "phone": "+91-302-4152957",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Outreach to tribal women for reproductive health"
+      }
+    ],
+    "500006": [
+      {
+        "name": "Seva Clinic",
+        "address": "112 Main Road, Mehdipatnam, Hyderabad, Telangana",
+        "phone": "+91-777-3499836",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "500007": [
+      {
+        "name": "Prerna Health Point",
+        "address": "64 Main Road, Ameerpet, Hyderabad, Telangana",
+        "phone": "+91-419-5535104",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "500008": [
+      {
+        "name": "Grameen Clinic",
+        "address": "42 Main Road, Begumpet, Hyderabad, Telangana",
+        "phone": "+91-115-8157130",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Partnership with local ASHA workers"
+      }
+    ],
+    "500009": [
+      {
+        "name": "Prerna Health Point",
+        "address": "161 Main Road, Moghalpura, Hyderabad, Telangana",
+        "phone": "+91-891-4336423",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Partnership with local ASHA workers"
+      }
+    ],
+    "500010": [
+      {
+        "name": "Nari Seva Sadan",
+        "address": "48 Main Road, Nampally, Hyderabad, Telangana",
+        "phone": "+91-970-1415432",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Mobile health van outreach"
+      }
+    ],
+    "600001": [
+      {
+        "name": "Mahila Arogya Kendra",
+        "address": "104 Main Road, Chennai GPO, Chennai, Tamil Nadu",
+        "phone": "+91-621-7769652",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "600002": [
+      {
+        "name": "Seva Clinic",
+        "address": "32 Main Road, Parrys, Chennai, Tamil Nadu",
+        "phone": "+91-242-6769108",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "600003": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "4 Main Road, Royapettah, Chennai, Tamil Nadu",
+        "phone": "+91-917-5432252",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Mobile health van outreach"
+      }
+    ],
+    "600004": [
+      {
+        "name": "Matrika Health Centre",
+        "address": "199 Main Road, Teynampet, Chennai, Tamil Nadu",
+        "phone": "+91-567-8611218",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "600005": [
+      {
+        "name": "Jeevan Jyoti Clinic",
+        "address": "109 Main Road, Adyar, Chennai, Tamil Nadu",
+        "phone": "+91-495-8854483",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Focus on menstrual hygiene education"
+      }
+    ],
+    "600006": [
+      {
+        "name": "Mahila Arogya Kendra",
+        "address": "104 Main Road, Gopalapuram, Chennai, Tamil Nadu",
+        "phone": "+91-219-9209591",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Mobile health van outreach"
+      }
+    ],
+    "600007": [
+      {
+        "name": "Mahila Arogya Kendra",
+        "address": "8 Main Road, Triplicane, Chennai, Tamil Nadu",
+        "phone": "+91-868-5221692",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "600008": [
+      {
+        "name": "Asha Women's Clinic",
+        "address": "118 Main Road, Mylapore, Chennai, Tamil Nadu",
+        "phone": "+91-788-6335456",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Mobile health van outreach"
+      }
+    ],
+    "600009": [
+      {
+        "name": "Arogya Kendra",
+        "address": "188 Main Road, Egmore, Chennai, Tamil Nadu",
+        "phone": "+91-901-8983127",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "600010": [
+      {
+        "name": "Prerna Health Point",
+        "address": "145 Main Road, T Nagar, Chennai, Tamil Nadu",
+        "phone": "+91-737-1183668",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Outreach to tribal women for reproductive health"
+      }
+    ],
+    "700001": [
+      {
+        "name": "Seva Clinic",
+        "address": "174 Main Road, Netaji Subhas Road, Kolkata, West Bengal",
+        "phone": "+91-142-2919571",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "700002": [
+      {
+        "name": "Nari Seva Sadan",
+        "address": "187 Main Road, Dalhousie Square, Kolkata, West Bengal",
+        "phone": "+91-371-5239149",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "700003": [
+      {
+        "name": "Arogya Kendra",
+        "address": "138 Main Road, BBD Bagh, Kolkata, West Bengal",
+        "phone": "+91-596-9894234",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "700004": [
+      {
+        "name": "Seva Clinic",
+        "address": "151 Main Road, Barabazar, Kolkata, West Bengal",
+        "phone": "+91-590-9891323",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "700005": [
+      {
+        "name": "Prerna Health Point",
+        "address": "147 Main Road, Maidan, Kolkata, West Bengal",
+        "phone": "+91-842-7478529",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "700006": [
+      {
+        "name": "Nari Seva Sadan",
+        "address": "116 Main Road, Esplanade, Kolkata, West Bengal",
+        "phone": "+91-844-6085218",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Outreach to tribal women for reproductive health"
+      }
+    ],
+    "700007": [
+      {
+        "name": "Seva Clinic",
+        "address": "62 Main Road, Writer\u2019s Building, Kolkata, West Bengal",
+        "phone": "+91-982-5855595",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Mobile health van outreach"
+      }
+    ],
+    "700008": [
+      {
+        "name": "Arogya Kendra",
+        "address": "96 Main Road, Sandhurst Street, Kolkata, West Bengal",
+        "phone": "+91-810-9584788",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "700009": [
+      {
+        "name": "Seva Clinic",
+        "address": "90 Main Road, Bowbazar, Kolkata, West Bengal",
+        "phone": "+91-195-5655512",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Weekly antenatal check-up camp"
+      }
+    ],
+    "700010": [
+      {
+        "name": "Matrika Health Centre",
+        "address": "89 Main Road, Chandni Chowk, Kolkata, West Bengal",
+        "phone": "+91-659-8052290",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Low-cost gynecological treatments"
+      }
+    ],
+    "560001": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "141 Main Road, Bangalore GPO, Bengaluru Urban, Karnataka",
+        "phone": "+91-214-6843723",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Low-cost gynecological treatments"
+      }
+    ],
+    "560002": [
+      {
+        "name": "Arogya Kendra",
+        "address": "118 Main Road, M.G. Road, Bengaluru Urban, Karnataka",
+        "phone": "+91-963-4386425",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "560003": [
+      {
+        "name": "Jeevan Jyoti Clinic",
+        "address": "166 Main Road, Cantonment, Bengaluru Urban, Karnataka",
+        "phone": "+91-998-4879723",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "560004": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "38 Main Road, Shivajinagar, Bengaluru Urban, Karnataka",
+        "phone": "+91-657-6418262",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "560005": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "105 Main Road, Ulsoor, Bengaluru Urban, Karnataka",
+        "phone": "+91-185-8629188",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Focus on menstrual hygiene education"
+      }
+    ],
+    "560006": [
+      {
+        "name": "Jeevan Jyoti Clinic",
+        "address": "154 Main Road, Cubbon Road, Bengaluru Urban, Karnataka",
+        "phone": "+91-225-7484679",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Mobile health van outreach"
+      }
+    ],
+    "560007": [
+      {
+        "name": "Jeevan Jyoti Clinic",
+        "address": "114 Main Road, Seshadripuram, Bengaluru Urban, Karnataka",
+        "phone": "+91-986-4496057",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Partnership with local ASHA workers"
+      }
+    ],
+    "560008": [
+      {
+        "name": "Mahila Arogya Kendra",
+        "address": "47 Main Road, Basavanagudi, Bengaluru Urban, Karnataka",
+        "phone": "+91-437-2386155",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Focus on menstrual hygiene education"
+      }
+    ],
+    "560009": [
+      {
+        "name": "Arogya Kendra",
+        "address": "9 Main Road, Jayanagar, Bengaluru Urban, Karnataka",
+        "phone": "+91-435-4361272",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Partnership with local ASHA workers"
+      }
+    ],
+    "560010": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "148 Main Road, Koramangala, Bengaluru Urban, Karnataka",
+        "phone": "+91-848-3529817",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Weekly antenatal check-up camp"
+      }
+    ],
+    "380001": [
+      {
+        "name": "Prerna Health Point",
+        "address": "128 Main Road, Ahmedabad GPO, Ahmedabad, Gujarat",
+        "phone": "+91-134-3554478",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "380002": [
+      {
+        "name": "Grameen Clinic",
+        "address": "184 Main Road, Dharampura, Ahmedabad, Gujarat",
+        "phone": "+91-734-4990590",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "380003": [
+      {
+        "name": "Asha Women's Clinic",
+        "address": "182 Main Road, Manek Chawk, Ahmedabad, Gujarat",
+        "phone": "+91-241-5997138",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "380004": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "175 Main Road, Mahurat, Ahmedabad, Gujarat",
+        "phone": "+91-805-1970140",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Weekly antenatal check-up camp"
+      }
+    ],
+    "380005": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "129 Main Road, Relief Road, Ahmedabad, Gujarat",
+        "phone": "+91-502-8043065",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Family planning and contraceptive access"
+      }
+    ],
+    "380006": [
+      {
+        "name": "Seva Clinic",
+        "address": "9 Main Road, Ellis Bridge, Ahmedabad, Gujarat",
+        "phone": "+91-750-6889828",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "380007": [
+      {
+        "name": "Seva Clinic",
+        "address": "10 Main Road, Ashram Road, Ahmedabad, Gujarat",
+        "phone": "+91-225-8248592",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Focus on menstrual hygiene education"
+      }
+    ],
+    "380008": [
+      {
+        "name": "Arogya Kendra",
+        "address": "42 Main Road, Navrangpura, Ahmedabad, Gujarat",
+        "phone": "+91-516-1860023",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "380009": [
+      {
+        "name": "Nari Seva Sadan",
+        "address": "152 Main Road, Paldi, Ahmedabad, Gujarat",
+        "phone": "+91-829-8717413",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Weekly antenatal check-up camp"
+      }
+    ],
+    "380010": [
+      {
+        "name": "Grameen Clinic",
+        "address": "51 Main Road, Gandhinagar Road, Ahmedabad, Gujarat",
+        "phone": "+91-939-4420479",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "110011": [
+      {
+        "name": "Arogya Kendra",
+        "address": "165 Main Road, Paharganj, New Delhi, Delhi",
+        "phone": "+91-818-8863773",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "110012": [
+      {
+        "name": "Swasthya Bhavan",
+        "address": "81 Main Road, Shahjahan Road, New Delhi, Delhi",
+        "phone": "+91-729-8765378",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Partnership with local ASHA workers"
+      }
+    ],
+    "110013": [
+      {
+        "name": "Prerna Health Point",
+        "address": "82 Main Road, Chanakyapuri Ext, New Delhi, Delhi",
+        "phone": "+91-389-6713802",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "110014": [
+      {
+        "name": "Seva Clinic",
+        "address": "52 Main Road, Khan Market, New Delhi, Delhi",
+        "phone": "+91-295-7647670",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "110015": [
+      {
+        "name": "Grameen Clinic",
+        "address": "178 Main Road, Gole Market, New Delhi, Delhi",
+        "phone": "+91-768-5338564",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "110016": [
+      {
+        "name": "Nari Seva Sadan",
+        "address": "149 Main Road, Kasturba Gandhi Marg, New Delhi, Delhi",
+        "phone": "+91-519-9617401",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Outreach to tribal women for reproductive health"
+      }
+    ],
+    "110017": [
+      {
+        "name": "Arogya Kendra",
+        "address": "195 Main Road, Sansad Marg South, New Delhi, Delhi",
+        "phone": "+91-476-3027329",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "110018": [
+      {
+        "name": "Seva Clinic",
+        "address": "23 Main Road, Barakhamba Road, New Delhi, Delhi",
+        "phone": "+91-497-7065056",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "110019": [
+      {
+        "name": "Asha Women's Clinic",
+        "address": "79 Main Road, Gole Market North, New Delhi, Delhi",
+        "phone": "+91-631-8420475",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "110020": [
+      {
+        "name": "Prerna Health Point",
+        "address": "11 Main Road, Pusa, New Delhi, Delhi",
+        "phone": "+91-557-1035671",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Maternal care and counselling services"
+      }
+    ],
+    "600011": [
+      {
+        "name": "Seva Clinic",
+        "address": "191 Main Road, Kodambakkam, Chennai, Tamil Nadu",
+        "phone": "+91-835-3727040",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "600012": [
+      {
+        "name": "Grameen Clinic",
+        "address": "152 Main Road, Kilpauk, Chennai, Tamil Nadu",
+        "phone": "+91-725-3890562",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Low-cost gynecological treatments"
+      }
+    ],
+    "600013": [
+      {
+        "name": "Seva Clinic",
+        "address": "72 Main Road, Perambur, Chennai, Tamil Nadu",
+        "phone": "+91-719-6402855",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Outreach to tribal women for reproductive health"
+      }
+    ],
+    "600014": [
+      {
+        "name": "Grameen Clinic",
+        "address": "172 Main Road, Anna Nagar, Chennai, Tamil Nadu",
+        "phone": "+91-557-9249748",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Midwife-led birthing support"
+      }
+    ],
+    "600015": [
+      {
+        "name": "Arogya Kendra",
+        "address": "40 Main Road, Vadapalani, Chennai, Tamil Nadu",
+        "phone": "+91-219-6443204",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Partnership with local ASHA workers"
+      }
+    ],
+    "600016": [
+      {
+        "name": "Mahila Arogya Kendra",
+        "address": "159 Main Road, Valasaravakkam, Chennai, Tamil Nadu",
+        "phone": "+91-495-8721345",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "600017": [
+      {
+        "name": "Jeevan Jyoti Clinic",
+        "address": "166 Main Road, Porur, Chennai, Tamil Nadu",
+        "phone": "+91-111-4717818",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Low-cost gynecological treatments"
+      }
+    ],
+    "600018": [
+      {
+        "name": "Seva Clinic",
+        "address": "137 Main Road, Kolathur, Chennai, Tamil Nadu",
+        "phone": "+91-168-8829044",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Emergency obstetric services"
+      }
+    ],
+    "600019": [
+      {
+        "name": "Mahila Arogya Kendra",
+        "address": "153 Main Road, Ambattur, Chennai, Tamil Nadu",
+        "phone": "+91-915-1687716",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Outreach to tribal women for reproductive health"
+      }
+    ],
+    "600020": [
+      {
+        "name": "Jeevan Jyoti Clinic",
+        "address": "199 Main Road, Avadi, Chennai, Tamil Nadu",
+        "phone": "+91-978-7709338",
+        "hours": "Mon-Sat 9am-5pm",
+        "notes": "Weekly antenatal check-up camp"
+      }
+    ]
+  }

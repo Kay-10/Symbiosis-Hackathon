@@ -1,0 +1,12 @@
+# Core dependencies for the Sakhi assistant
+aiofiles>=23.2.1
+beautifulsoup4>=4.12.3
+edge-tts>=6.1.10
+fastapi>=0.110.0
+langdetect>=1.0.9
+pydantic>=2.6.0
+python-multipart>=0.0.9
+requests>=2.31.0
+SpeechRecognition>=3.10.0
+pyaudio>=0.2.14
+uvicorn[standard]>=0.27.0
