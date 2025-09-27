@@ -782,7 +782,7 @@
         "notes": "Low-cost gynecological treatments"
       }
     ],
-    "600018": [
+    "614032": [
       {
         "name": "Seva Clinic",
         "address": "137 Main Road, Kolathur, Chennai, Tamil Nadu",
@@ -808,5 +808,29 @@
         "hours": "Mon-Sat 9am-5pm",
         "notes": "Weekly antenatal check-up camp"
       }
-    ]
+    ],
+    "411057": [
+  {
+    "name": "Ruby Hall Clinic - Hinjawadi",
+    "address": "Rajeev Gandhi Infotech Park, Hinjawadi, Pune, Maharashtra",
+    "phone": "+91-1800-210-4949",
+    "hours": "Mon-Sat 9am-6pm",
+    "notes": "Multispeciality clinic with Orthopaedic, Cardiology, Dermatology, and more"
+  },
+  {
+    "name": "Dr. Amit Girme",
+    "address": "Ruby Hall Clinic, Hinjawadi, Pune, Maharashtra",
+    "phone": "N/A",
+    "hours": "Mon-Sat 5:30pm-7pm",
+    "notes": "General Surgeon with DNB, FIAGES, FMAS"
+  },
+  {
+    "name": "Dr. Rajendra Chavan",
+    "address": "Ruby Hall Clinic, Hinjawadi, Pune, Maharashtra",
+    "phone": "N/A",
+    "hours": "By appointment",
+    "notes": "Cardiologist with MD Medicine and DM Cardiology"
+  }
+]
+
   }
