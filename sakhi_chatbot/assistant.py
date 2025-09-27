@@ -22,7 +22,7 @@ Guidelines:
 - Only set next_step.type to LOCAL_DIRECTORY when you already have a valid 6-digit PIN code and include it in inputs.
 - When the user mainly seeks self-care tips, set next_step.type to HEALTH_KNOWLEDGE with a concise lowercase topic keyword.
 - Whenever next_step.type is not NONE, assistant_reply must only contain a short, friendly waiting message asking the user to hold for about a minute (no follow-up questions).
-- Always follow any Preferred language instruction exactly and sound warm, respectful, and culturally sensitive.
+- Always follow any Preferred language instruction exactly and sound warm, respectful, and culturally sensitive. In Hindi or related languages, address the user lovingly as "बहन", "दीदी", or "सखी"; in English, use caring terms like "sister" when appropriate.
 """
 
 AGENT_SUMMARY_PROMPT_TEMPLATE = """
@@ -70,6 +70,58 @@ TOPIC_NORMALISATION: Dict[str, str] = {
     "ulati": "vomiting",
     "ulta": "vomiting",
 }
+
+LOCATION_REQUESTS: Dict[str, str] = {
+    "hi-IN": "बेन, आपकी सुविधा के लिए मुझे आपका गाँव या पिन कोड बता दीजिए ताकि मैं नज़दीकी डॉक्टर खोज सकूँ।",
+    "en-IN": "Didi, please share your village or PIN code so I can find a nearby doctor for you.",
+}
+
+LOCATION_REPROMPTS: Dict[str, str] = {
+    "hi-IN": "कृपया छह अंकों का पिन कोड या अपने गाँव का नाम फिर से बताइए, ताकि मैं सही जगह खोज सकूँ।",
+    "en-IN": "Please tell me a six digit PIN code or the name of your village again so I can look up the right place.",
+}
+
+CONFIRMATION_MESSAGES: Dict[str, str] = {
+    "hi-IN": "मैंने पिन कोड {pincode} समझा है। क्या यह सही है? हाँ या नहीं में बताइए।",
+    "en-IN": "I understood the PIN code as {pincode}. Is that correct? Please reply with yes or no.",
+}
+
+CONFIRMATION_REPROMPTS: Dict[str, str] = {
+    "hi-IN": "कृपया हाँ या नहीं में बताइए ताकि मैं आपकी मदद जारी रख सकूँ।",
+    "en-IN": "Please answer with yes or no so I can keep helping you.",
+}
+
+AFFIRMATIVE_RESPONSES = {
+    "haan",
+    "ha",
+    "haanji",
+    "han",
+    "yes",
+    "h",
+    "bilkul",
+    "ji",
+    "sahi",
+    "correct",
+    "y",
+}
+
+NEGATIVE_RESPONSES = {
+    "nahin",
+    "nahi",
+    "no",
+    "n",
+    "galat",
+    "wrong",
+    "na",
+    "nopes",
+}
+
+PIN_EXTRACTION_PROMPT = """
+You are an assistant who extracts Indian postal PIN codes (six digit numbers) from short location descriptions.
+Return JSON with keys `pincode` (string, six digits or empty), `confidence` (float between 0 and 1) and `reason` (string).
+If you cannot determine a PIN code, set `pincode` to an empty string.
+Do not include any additional text outside JSON.
+"""
 
 LANGUAGE_LABELS: Dict[str, str] = {
     "en-IN": "English",
@@ -133,6 +185,10 @@ class SakhiAssistant:
         self.health_agent = health_agent or HealthKnowledgeAgent(
             data_root / "health_knowledge_base.json"
         )
+        self.known_pincode: Optional[str] = None
+        self.awaiting_location: bool = False
+        self.pending_pincode: Optional[str] = None
+        self.awaiting_pincode_confirmation: bool = False
 
     def handle_user_message(
         self,
@@ -141,19 +197,49 @@ class SakhiAssistant:
         on_intermediate: Optional[Callable[[str, str], None]] = None,
     ) -> AssistantTurnResult:
         lang_decision = self.language_router.detect_language(user_text)
+        language_code = lang_decision.language_code
         self.memory.append("user", user_text)
+
+        if self.awaiting_pincode_confirmation and self.pending_pincode:
+            return self._handle_pincode_confirmation(
+                user_text,
+                language_code,
+                on_intermediate,
+            )
+
+        if self.awaiting_location:
+            return self._handle_location_response(user_text, language_code)
+
+        self._capture_inline_pincode(user_text)
 
         conversation = self._memory_as_messages()
         directive = self._query_groq(
             conversation,
-            language_hint=lang_decision.language_code,
+            language_hint=language_code,
         )
+        language_code = directive.language
+
+        self._capture_inline_pincode(directive.assistant_reply)
+
+        if directive.encourage_doctor and not self._latest_pincode():
+            request = self._location_request(language_code)
+            self.awaiting_location = True
+            self.pending_pincode = None
+            self.awaiting_pincode_confirmation = False
+            self.memory.append("assistant", request)
+            return AssistantTurnResult(
+                language=language_code,
+                message=request,
+                encourage_doctor=True,
+                agent_name="NONE",
+                agent_inputs={},
+                intermediate_message=None,
+            )
 
         self.memory.append("assistant", directive.assistant_reply)
-
         if directive.next_step.type == "NONE":
             return AssistantTurnResult(
-                language=directive.language,
+                language=language_code,
                 message=directive.assistant_reply,
                 encourage_doctor=directive.encourage_doctor,
                 agent_name="NONE",
@@ -161,17 +247,23 @@ class SakhiAssistant:
                 intermediate_message=None,
             )
 
+        if (
+            directive.next_step.type == "LOCAL_DIRECTORY"
+            and self._is_valid_pincode(directive.next_step.inputs.get("pincode", ""))
+        ):
+            self.known_pincode = directive.next_step.inputs.get("pincode")
+
         if on_intermediate:
-            on_intermediate(directive.assistant_reply, directive.language)
+            on_intermediate(directive.assistant_reply, language_code)
 
         agent_output = self._run_agent(directive.next_step)
         if not agent_output:
             agent_output = NO_AGENT_FALLBACK.get(
-                directive.language, NO_AGENT_FALLBACK["en-IN"]
+                language_code, NO_AGENT_FALLBACK["en-IN"]
             )
 
         agent_summary = self._summarise_agent_response(
-            language=directive.language,
+            language=language_code,
             agent_name=directive.next_step.type,
             agent_inputs=directive.next_step.inputs,
             agent_output=agent_output,
@@ -180,7 +272,7 @@ class SakhiAssistant:
 
         self.memory.append("assistant", agent_summary)
         return AssistantTurnResult(
-            language=directive.language,
+            language=language_code,
             message=agent_summary,
             encourage_doctor=directive.encourage_doctor,
             agent_name=directive.next_step.type,
@@ -189,9 +281,181 @@ class SakhiAssistant:
             intermediate_message=directive.assistant_reply,
         )
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
+    def _handle_location_response(
+        self,
+        user_text: str,
+        language: str,
+    ) -> AssistantTurnResult:
+        pincode = self._extract_pincode_from_text(user_text)
+        if pincode:
+            self.pending_pincode = pincode
+            self.awaiting_location = False
+            self.awaiting_pincode_confirmation = True
+            confirmation = self._confirmation_prompt(language, pincode)
+            self.memory.append("assistant", confirmation)
+            return AssistantTurnResult(
+                language=language,
+                message=confirmation,
+                encourage_doctor=True,
+                agent_name="NONE",
+                agent_inputs={},
+                intermediate_message=None,
+            )
+        reprompt = self._location_reprompt(language)
+        self.memory.append("assistant", reprompt)
+        return AssistantTurnResult(
+            language=language,
+            message=reprompt,
+            encourage_doctor=True,
+            agent_name="NONE",
+            agent_inputs={},
+            intermediate_message=None,
+        )
+
+    def _handle_pincode_confirmation(
+        self,
+        user_text: str,
+        language: str,
+        on_intermediate: Optional[Callable[[str, str], None]],
+    ) -> AssistantTurnResult:
+        if self._is_affirmative(user_text):
+            known = self.pending_pincode or ""
+            if self._is_valid_pincode(known):
+                self.known_pincode = known
+            self.pending_pincode = None
+            self.awaiting_pincode_confirmation = False
+            self.awaiting_location = False
+            wait_text = WAITING_TRANSLATIONS.get(language, WAITING_TRANSLATIONS["en-IN"])
+            self.memory.append("assistant", wait_text)
+            if on_intermediate:
+                on_intermediate(wait_text, language)
+            directive = AgentDirective(
+                type="LOCAL_DIRECTORY",
+                inputs={"pincode": self.known_pincode} if self.known_pincode else {},
+            )
+            agent_output = self._run_agent(directive)
+            if not agent_output:
+                agent_output = NO_AGENT_FALLBACK.get(language, NO_AGENT_FALLBACK["en-IN"])
+            agent_summary = self._summarise_agent_response(
+                language=language,
+                agent_name="LOCAL_DIRECTORY",
+                agent_inputs=directive.inputs,
+                agent_output=agent_output,
+                encourage_doctor=True,
+            )
+            self.memory.append("assistant", agent_summary)
+            return AssistantTurnResult(
+                language=language,
+                message=agent_summary,
+                encourage_doctor=True,
+                agent_name="LOCAL_DIRECTORY",
+                agent_inputs=directive.inputs,
+                agent_output=agent_output,
+                intermediate_message=wait_text,
+            )
+
+        if self._is_negative(user_text):
+            self.pending_pincode = None
+            self.awaiting_pincode_confirmation = False
+            self.awaiting_location = True
+            reprompt = self._location_reprompt(language)
+            self.memory.append("assistant", reprompt)
+            return AssistantTurnResult(
+                language=language,
+                message=reprompt,
+                encourage_doctor=True,
+                agent_name="NONE",
+                agent_inputs={},
+                intermediate_message=None,
+            )
+
+        reminder = self._confirmation_retry(language)
+        self.memory.append("assistant", reminder)
+        return AssistantTurnResult(
+            language=language,
+            message=reminder,
+            encourage_doctor=True,
+            agent_name="NONE",
+            agent_inputs={},
+            intermediate_message=None,
+        )
+
+    def _capture_inline_pincode(self, text: str) -> None:
+        if self.known_pincode:
+            return
+        candidate = self._regex_pincode(text)
+        if candidate:
+            self.known_pincode = candidate
+            self.pending_pincode = None
+            self.awaiting_location = False
+            self.awaiting_pincode_confirmation = False
+
+    @staticmethod
+    def _regex_pincode(text: str) -> Optional[str]:
+        match = re.search(r"[1-9][0-9]{5}", text)
+        if match:
+            return match.group(0)
+        return None
+
+    def _extract_pincode_from_text(self, text: str) -> Optional[str]:
+        candidate = self._regex_pincode(text)
+        if candidate:
+            return candidate
+        return self._extract_pincode_via_groq(text)
+
+    def _extract_pincode_via_groq(self, text: str) -> Optional[str]:
+        if not text.strip():
+            return None
+        messages = [
+            GroqMessage(role="system", content=PIN_EXTRACTION_PROMPT),
+            GroqMessage(role="user", content=text.strip()),
+        ]
+        try:
+            response = self.groq_client.complete(
+                messages,
+                temperature=0,
+                max_tokens=120,
+                response_format={"type": "json_object"},
+            )
+        except GroqAPIError:
+            return None
+        except Exception:
+            return None
+        raw = self.groq_client.extract_message_text(response)
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+        candidate = str(data.get("pincode", "")).strip()
+        if self._is_valid_pincode(candidate):
+            return candidate
+        return None
+
+    def _location_request(self, language: str) -> str:
+        return LOCATION_REQUESTS.get(language, LOCATION_REQUESTS["en-IN"])
+
+    def _location_reprompt(self, language: str) -> str:
+        return LOCATION_REPROMPTS.get(language, LOCATION_REPROMPTS["en-IN"])
+
+    def _confirmation_prompt(self, language: str, pincode: str) -> str:
+        template = CONFIRMATION_MESSAGES.get(language, CONFIRMATION_MESSAGES["en-IN"])
+        return template.format(pincode=pincode)
+
+    def _confirmation_retry(self, language: str) -> str:
+        return CONFIRMATION_REPROMPTS.get(language, CONFIRMATION_REPROMPTS["en-IN"])
+
+    def _is_affirmative(self, text: str) -> bool:
+        tokens = text.lower().split()
+        if text.strip().lower() in AFFIRMATIVE_RESPONSES:
+            return True
+        return any(token in AFFIRMATIVE_RESPONSES for token in tokens)
+
+    def _is_negative(self, text: str) -> bool:
+        tokens = text.lower().split()
+        if text.strip().lower() in NEGATIVE_RESPONSES:
+            return True
+        return any(token in NEGATIVE_RESPONSES for token in tokens)
+
     def _query_groq(
         self,
         conversation: List[GroqMessage],
@@ -361,7 +625,9 @@ class SakhiAssistant:
         return json.dumps({"known_pincode": pincode})
 
     def _latest_pincode(self) -> Optional[str]:
-        pattern = re.compile(r"[1-9][0-9]{5}")
+        if self.known_pincode and self._is_valid_pincode(self.known_pincode):
+            return self.known_pincode
+        pattern = re.compile(r"\b[1-9][0-9]{5}\b")
         for turn in reversed(self.memory.history):
             match = pattern.search(turn.content)
             if match:
