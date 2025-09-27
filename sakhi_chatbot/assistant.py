@@ -17,33 +17,6 @@ PRIMARY_SYSTEM_PROMPT = """
 You are Sakhi, a warm and caring community health guide supporting rural women in India.
 Speak naturally and empathetically in the user's language. Keep replies conversational (3-5 sentences) and avoid clinical jargon.
 Output strict JSON with this schema: {"language": string, "assistant_reply": string, "next_step": {"type": "NONE" | "LOCAL_DIRECTORY" | "HEALTH_KNOWLEDGE", "inputs": object}, "encourage_doctor": boolean}.
-Guidelines:
-- If symptoms are severe (heavy bleeding, high fever, severe pain, pregnancy complications, fainting, etc.), set encourage_doctor=true and clearly advise visiting a doctor. If no PIN code is known, gently ask for it instead of calling an agent.
-- Only set next_step.type to LOCAL_DIRECTORY when you already have a valid 6-digit PIN code and include it in inputs.
-- When the user mainly seeks self-care tips, set next_step.type to HEALTH_KNOWLEDGE with a concise lowercase topic keyword.
-- Whenever next_step.type is not NONE, assistant_reply must only contain a short, friendly waiting message asking the user to hold for about a minute (no follow-up questions).
-- Always follow any Preferred language instruction exactly and sound warm, respectful, and culturally sensitive. In Hindi or related languages, address the user lovingly as "बहन", "दीदी", or "सखी"; in English, use caring terms like "sister" when appropriate.
-"""
-
-AGENT_SUMMARY_PROMPT_TEMPLATE = """
-You are Sakhi continuing the same conversation in {language_label} ({language}). Blend the agent data below into a caring, natural reply. Highlight key points, encourage a doctor visit when encourage_doctor is true, and stay concise.
-"""
-
-WAITING_TRANSLATIONS: Dict[str, str] = {
-    "en-IN": "Please wait about a minute while I gather trusted information...",
-    "hi-IN": "कृपया एक मिनट प्रतीक्षा करें, मैं भरोसेमंद जानकारी जुटा रही हूँ...",
-    "bn-IN": "অনুগ্রহ করে এক মিনিট অপেক্ষা করুন, আমি নির্ভরযোগ্য তথ্য খুঁজে আনছি...",
-    "te-IN": "దయచేసి ఒక నిమిషం వేచి ఉండండి, నమ్మదగిన సమాచారం తెస్తున్నాను...",
-    "ta-IN": "ஒரு நிமிடம் காத்திருக்கவும், நம்பகமான தகவலை தேடிக்கொண்டு வருகிறேன்...",
-    "ml-IN": "ഒരു മിനിറ്റ് കാത്തിരിക്കൂ, വിശ്വസനീയമായ വിവരങ്ങൾ ശേഖരിക്കുകയാണ്...",
-    "mr-IN": "कृपया एक मिनिट थांबा, मी खात्रीशीर माहिती गोळा करत आहे...",
-    "gu-IN": "મહેરબાની કરીને એક મિનિટ રાહ જુઓ, હું વિશ્વસનીય માહિતી શોધી રહી છું...",
-    "kn-IN": "ದಯವಿಟ್ಟು ಒಂದು ನಿಮಿಷ ಕಾಯಿರಿ, ವಿಶ್ವಾಸಾರ್ಹ ಮಾಹಿತಿಯನ್ನು ತರ್ತಿದ್ದೇನೆ...",
-    "pa-IN": "ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਮਿੰਟ ਠਹਿਰੋ, ਮੈਂ ਭਰੋਸੇਮੰਦ ਜਾਣਕਾਰੀ ਲੈ ਰਹੀ ਹਾਂ...",
-    "ur-IN": "براہ کرم ایک منٹ انتظار کریں، میں قابلِ بھروسہ معلومات لا رہی ہوں...",
-}
-
-NO_AGENT_FALLBACK: Dict[str, str] = {
     "en-IN": "I could not pull trusted details right now. Please visit or call your nearest doctor or ASHA worker as soon as possible.",
     "hi-IN": "मैं अभी भरोसेमंद जानकारी नहीं ला पा रही हूँ। कृपया जल्द से जल्द नज़दीकी डॉक्टर या आशा कार्यकर्ता से संपर्क करें।",
     "bn-IN": "এই মুহূর্তে নির্ভরযোগ্য তথ্য আনতে পারলাম না। অনুগ্রহ করে যত দ্রুত সম্ভব নিকটস্থ চিকিৎসক বা আশা কর্মীর সঙ্গে যোগাযোগ করুন।",
@@ -56,6 +29,7 @@ NO_AGENT_FALLBACK: Dict[str, str] = {
     "pa-IN": "ਮੈਨੂੰ ਇਸ ਵੇਲੇ ਭਰੋਸੇਯੋਗ ਜਾਣਕਾਰੀ ਨਹੀਂ ਮਿਲ ਸਕੀ। ਕਿਰਪਾ ਕਰਕੇ ਜਿੰਨਾ ਜਲਦੀ ਹੋ ਸਕੇ, ਨੇੜਲੇ ਡਾਕਟਰ ਜਾਂ ਆਸ਼ਾ ਵਰਕਰ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।",
     "ur-IN": "میں اس وقت مستند معلومات نہیں لا سکی۔ براہ کرم جلد از جلد قریب ترین ڈاکٹر یا آشا ورکر سے رابطہ کریں۔",
 }
+"""
 
 TOPIC_NORMALISATION: Dict[str, str] = {
     "sir dard": "headache",
@@ -150,6 +124,23 @@ SUMMARY_HINTS: Dict[str, str] = {
     "pa-IN": "ਕਿਰਪਾ ਕਰਕੇ ਹੇਠਾਂ ਦਿੱਤੀ ਜਾਣਕਾਰੀ ਬਹਿਨ ਨਾਲ ਪਿਆਰ ਨਾਲ ਪੰਜਾਬੀ ਵਿੱਚ ਸਾਂਝੀ ਕਰੋ।",
     "ur-IN": "براہ کرم نیچے دی گئی معلومات بہن کے ساتھ پیار سے اردو میں شیئر کریں۔",
 }
+
+# Short user-facing waiting messages while agents are queried.
+WAITING_TRANSLATIONS: Dict[str, str] = {
+    "en-IN": "Please wait while I look that up for you.",
+    "hi-IN": "कृपया प्रतीक्षा करें, मैं जानकारी खोज रही हूँ।",
+}
+
+# Fallback messages when an agent returns no useful output.
+NO_AGENT_FALLBACK: Dict[str, str] = {
+    "en-IN": "I couldn't find any trusted details right now. Please consult a nearby doctor or ASHA worker if needed.",
+    "hi-IN": "मुझे इस समय भरोसेमंद जानकारी नहीं मिल सकी। यदि ज़रूरी हो तो नज़दीकी डॉक्टर से संपर्क करें।",
+}
+
+# Template used to ask Groq to summarise an agent's output into a user-facing assistant reply.
+AGENT_SUMMARY_PROMPT_TEMPLATE = (
+    "Summarise the agent results for a user. Use language {language} ({language_label}) and a warm, supportive tone."
+)
 
 
 @dataclass
@@ -488,7 +479,8 @@ class SakhiAssistant:
 
     @staticmethod
     def _regex_pincode(text: str) -> Optional[str]:
-        match = re.search(r"[1-9][0-9]{5}", text)
+        # Match 6-digit Indian PIN codes using word boundaries.
+        match = re.search(r"\b[1-9][0-9]{5}\b", text)
         if match:
             return match.group(0)
         return None
@@ -578,15 +570,6 @@ class SakhiAssistant:
 
         assistant_text = payload.get("assistant_reply", "")
         encourage_flag = bool(payload.get("encourage_doctor", False))
-        if not encourage_flag:
-            lowered_text = assistant_text.lower()
-            doctor_terms = ["doctor", "clinic", "hospital", "डॉक्टर", "अस्पताल", "डाक्टर"]
-            if any(term in lowered_text for term in doctor_terms):
-                encourage_flag = True
-        latest_pin = self._latest_pincode()
-        if encourage_flag and agent_type != "LOCAL_DIRECTORY" and latest_pin:
-            agent_type = "LOCAL_DIRECTORY"
-            inputs = {"pincode": latest_pin}
 
         language_selected = language_hint or payload.get("language", "en-IN")
         directive = GroqDirective(
