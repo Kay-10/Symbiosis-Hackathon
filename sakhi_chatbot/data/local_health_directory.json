@@ -809,28 +809,42 @@
         "notes": "Weekly antenatal check-up camp"
       }
     ],
-    "411057": [
-  {
-    "name": "Ruby Hall Clinic - Hinjawadi",
-    "address": "Rajeev Gandhi Infotech Park, Hinjawadi, Pune, Maharashtra",
-    "phone": "+91-1800-210-4949",
-    "hours": "Mon-Sat 9am-6pm",
-    "notes": "Multispeciality clinic with Orthopaedic, Cardiology, Dermatology, and more"
-  },
-  {
-    "name": "Dr. Amit Girme",
-    "address": "Ruby Hall Clinic, Hinjawadi, Pune, Maharashtra",
-    "phone": "N/A",
-    "hours": "Mon-Sat 5:30pm-7pm",
-    "notes": "General Surgeon with DNB, FIAGES, FMAS"
-  },
-  {
-    "name": "Dr. Rajendra Chavan",
-    "address": "Ruby Hall Clinic, Hinjawadi, Pune, Maharashtra",
-    "phone": "N/A",
-    "hours": "By appointment",
-    "notes": "Cardiologist with MD Medicine and DM Cardiology"
-  }
+  "411057": [
+{
+"name": "Dr. Asmita Dongare",
+"address": "Cloverleaf Specialty Clinic, Wakad & Jupiter Hospital, Baner, Pune, Maharashtra",
+"phone": "+91-9560506620",
+"hours": "Mon-Sat 10am-6pm",
+"notes": "Gynecologist with 18+ years experience specializing in menstrual disorders, high-risk pregnancy, infertility treatment, and personalized care"
+},
+{
+"name": "Dr. Vandana Rahul Kataria",
+"address": "Pune, Maharashtra",
+"phone": "N/A",
+"hours": "By appointment",
+"notes": "Obstetrician and Gynecologist with 32+ years experience, expert in menstrual irregularities and women's reproductive health"
+},
+{
+"name": "Dr. Vaishali Vinod Giri",
+"address": "City Vista, A-216, Ashoka Nagar, Kharadi, Pune, Maharashtra",
+"phone": "N/A",
+"hours": "By appointment",
+"notes": "Obstetrician and Gynecologist with 22+ years experience, specializing in menstrual disorders and women's health"
+},
+{
+"name": "Dr. Bhagyashri Ramdas Naphade",
+"address": "Pune, Maharashtra",
+"phone": "N/A",
+"hours": "By appointment",
+"notes": "Gynecologist with 21+ years experience, expertise in menstrual health and treatment"
+},
+{
+"name": "Dr. Komal Bhadu",
+"address": "1st Floor, Aru Palace, Malwadi Rd, near Mahalaxmi Mandir, Hadapsar, Pune, Maharashtra",
+"phone": "N/A",
+"hours": "Mon-Sat 10am-5pm",
+"notes": "Gynecologist with 13+ years experience, treatment for menstrual disorders including hormonal therapy"
+}
 ]
 
   }

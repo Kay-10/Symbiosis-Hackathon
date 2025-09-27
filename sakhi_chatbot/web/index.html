@@ -165,6 +165,12 @@
       </li>
     </template>
 
+    <!-- subtle listening tone used while waiting for transcription -->
+    <audio id="listening-audio" loop preload="auto" aria-hidden="true">
+      <!-- A short, gentle low-volume tone (embedded as tiny base64 wav) -->
+      <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" type="audio/wav">
+    </audio>
+
     <script type="module" src="/static/app.js"></script>
   </body>
 </html>

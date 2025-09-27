@@ -31,6 +31,7 @@ const elements = {
   typingIndicator: document.getElementById("typing-indicator"),
   quickReplies: document.getElementById("quick-replies"),
   scrollBottom: document.getElementById("scroll-bottom"),
+  listeningAudio: document.getElementById("listening-audio"),
 };
 
 async function init() {
@@ -478,6 +479,19 @@ async function transcribeAndSend(blob) {
   state.currentController = controller;
 
   setStatus("Understanding your voice…", "busy");
+  // Try to play a subtle listening tone while waiting for transcription.
+  // This improves perceived latency for the user. Autoplay might be blocked
+  // by browsers so we safely ignore play() rejections.
+  if (elements.listeningAudio) {
+    try {
+      elements.listeningAudio.volume = 0.12;
+      elements.listeningAudio.loop = true;
+      const p = elements.listeningAudio.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) {
+      // ignore autoplay errors
+    }
+  }
   try {
     const res = await fetch("/api/transcribe", {
       method: "POST",
@@ -504,6 +518,15 @@ async function transcribeAndSend(blob) {
     }
   } finally {
     state.currentController = null;
+    // Stop listening tone regardless of success/abort/error
+    if (elements.listeningAudio) {
+      try {
+        elements.listeningAudio.pause();
+        elements.listeningAudio.currentTime = 0;
+      } catch (e) {
+        // ignore
+      }
+    }
   }
 }
 

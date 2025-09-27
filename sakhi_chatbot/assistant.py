@@ -370,18 +370,18 @@ class SakhiAssistant:
     ) -> AssistantTurnResult:
         pincode = self._extract_pincode_from_text(user_text)
         if pincode:
-            self.pending_pincode = pincode
+            # Accept PIN immediately (no confirmation step) to streamline UX.
+            # Set the known pincode and directly respond with local directory results.
+            self.known_pincode = pincode
+            self.pending_pincode = None
             self.awaiting_location = False
-            self.awaiting_pincode_confirmation = True
-            confirmation = self._confirmation_prompt(language, pincode)
-            self.memory.append("assistant", confirmation)
-            return AssistantTurnResult(
-                language=language,
-                message=confirmation,
-                encourage_doctor=True,
-                agent_name="NONE",
-                agent_inputs={},
-                intermediate_message=None,
+            self.awaiting_pincode_confirmation = False
+            # Immediately fetch and return local directory results (emit wait message)
+            return self._respond_with_local_directory(
+                language,
+                None,  # no on_intermediate callback here
+                encourage=True,
+                emit_wait=True,
             )
         reprompt = self._location_reprompt(language)
         self.memory.append("assistant", reprompt)
