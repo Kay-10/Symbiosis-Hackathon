@@ -257,6 +257,31 @@ class SakhiAssistant:
             on_intermediate(directive.assistant_reply, language_code)
 
         agent_output = self._run_agent(directive.next_step)
+
+        if directive.next_step.type == "HEALTH_KNOWLEDGE" and not agent_output:
+            latest_pin = self._latest_pincode()
+            if latest_pin:
+                self.known_pincode = latest_pin
+                return self._respond_with_local_directory(
+                    language_code,
+                    on_intermediate,
+                    encourage=True,
+                    emit_wait=False,
+                )
+            self.awaiting_location = True
+            self.awaiting_pincode_confirmation = False
+            self.pending_pincode = None
+            request = self._location_request(language_code)
+            self.memory.append("assistant", request)
+            return AssistantTurnResult(
+                language=language_code,
+                message=request,
+                encourage_doctor=True,
+                agent_name="NONE",
+                agent_inputs={},
+                intermediate_message=None,
+            )
+
         if not agent_output:
             agent_output = NO_AGENT_FALLBACK.get(
                 language_code, NO_AGENT_FALLBACK["en-IN"]
@@ -279,6 +304,49 @@ class SakhiAssistant:
             agent_inputs=directive.next_step.inputs,
             agent_output=agent_output,
             intermediate_message=directive.assistant_reply,
+        )
+
+    def _respond_with_local_directory(
+        self,
+        language: str,
+        on_intermediate: Optional[Callable[[str, str], None]],
+        *,
+        encourage: bool,
+        emit_wait: bool,
+    ) -> AssistantTurnResult:
+        pincode = self._latest_pincode()
+        wait_text = WAITING_TRANSLATIONS.get(language, WAITING_TRANSLATIONS["en-IN"])
+        self.awaiting_location = False
+        self.awaiting_pincode_confirmation = False
+        self.pending_pincode = None
+        intermediate_message = wait_text if emit_wait else None
+        if emit_wait:
+            self.memory.append("assistant", wait_text)
+            if on_intermediate:
+                on_intermediate(wait_text, language)
+        directive = AgentDirective(
+            type="LOCAL_DIRECTORY",
+            inputs={"pincode": pincode} if pincode else {},
+        )
+        agent_output = self._run_agent(directive)
+        if not agent_output:
+            agent_output = NO_AGENT_FALLBACK.get(language, NO_AGENT_FALLBACK["en-IN"])
+        agent_summary = self._summarise_agent_response(
+            language=language,
+            agent_name="LOCAL_DIRECTORY",
+            agent_inputs=directive.inputs,
+            agent_output=agent_output,
+            encourage_doctor=encourage,
+        )
+        self.memory.append("assistant", agent_summary)
+        return AssistantTurnResult(
+            language=language,
+            message=agent_summary,
+            encourage_doctor=encourage,
+            agent_name="LOCAL_DIRECTORY",
+            agent_inputs=directive.inputs,
+            agent_output=agent_output,
+            intermediate_message=intermediate_message,
         )
 
     def _handle_location_response(
@@ -325,33 +393,11 @@ class SakhiAssistant:
             self.pending_pincode = None
             self.awaiting_pincode_confirmation = False
             self.awaiting_location = False
-            wait_text = WAITING_TRANSLATIONS.get(language, WAITING_TRANSLATIONS["en-IN"])
-            self.memory.append("assistant", wait_text)
-            if on_intermediate:
-                on_intermediate(wait_text, language)
-            directive = AgentDirective(
-                type="LOCAL_DIRECTORY",
-                inputs={"pincode": self.known_pincode} if self.known_pincode else {},
-            )
-            agent_output = self._run_agent(directive)
-            if not agent_output:
-                agent_output = NO_AGENT_FALLBACK.get(language, NO_AGENT_FALLBACK["en-IN"])
-            agent_summary = self._summarise_agent_response(
-                language=language,
-                agent_name="LOCAL_DIRECTORY",
-                agent_inputs=directive.inputs,
-                agent_output=agent_output,
-                encourage_doctor=True,
-            )
-            self.memory.append("assistant", agent_summary)
-            return AssistantTurnResult(
-                language=language,
-                message=agent_summary,
-                encourage_doctor=True,
-                agent_name="LOCAL_DIRECTORY",
-                agent_inputs=directive.inputs,
-                agent_output=agent_output,
-                intermediate_message=wait_text,
+            return self._respond_with_local_directory(
+                language,
+                on_intermediate,
+                encourage=True,
+                emit_wait=True,
             )
 
         if self._is_negative(user_text):
@@ -480,7 +526,13 @@ class SakhiAssistant:
         if agent_type == "HEALTH_KNOWLEDGE":
             inputs["topic"] = self._normalise_topic(inputs.get("topic", ""))
 
+        assistant_text = payload.get("assistant_reply", "")
         encourage_flag = bool(payload.get("encourage_doctor", False))
+        if not encourage_flag:
+            lowered_text = assistant_text.lower()
+            doctor_terms = ["doctor", "clinic", "hospital", "डॉक्टर", "अस्पताल", "डाक्टर"]
+            if any(term in lowered_text for term in doctor_terms):
+                encourage_flag = True
         latest_pin = self._latest_pincode()
         if encourage_flag and agent_type != "LOCAL_DIRECTORY" and latest_pin:
             agent_type = "LOCAL_DIRECTORY"
@@ -488,11 +540,8 @@ class SakhiAssistant:
 
         directive = GroqDirective(
             language=payload.get("language", language_hint or "en-IN"),
-            assistant_reply=payload.get(
-                "assistant_reply",
-                WAITING_TRANSLATIONS.get(
-                    language_hint or "en-IN", WAITING_TRANSLATIONS["en-IN"]
-                ),
+            assistant_reply=assistant_text or WAITING_TRANSLATIONS.get(
+                language_hint or "en-IN", WAITING_TRANSLATIONS["en-IN"]
             ),
             next_step=AgentDirective(type=agent_type, inputs=inputs),
             encourage_doctor=encourage_flag,
