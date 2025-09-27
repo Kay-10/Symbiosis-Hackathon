@@ -17,7 +17,7 @@ from typing import Any
 import requests
 
 
-DEFAULT_GROQ_MODEL = "mixtral-8x7b-32768"
+DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 
 
 @dataclass
@@ -88,16 +88,24 @@ class GroqChatClient:
         )
         url = "https://api.groq.com/openai/v1/chat/completions"
 
-        last_error: Optional[Exception] = None
+        last_error: Optional[str] = None
         for attempt in range(retry_attempts + 1):
             try:
                 response = self._session.post(
-                    url, data=json.dumps(payload), timeout=self.timeout_seconds
+                    url, json=payload, timeout=self.timeout_seconds
                 )
                 response.raise_for_status()
                 return response.json()
             except requests.RequestException as exc:
-                last_error = exc
+                if isinstance(exc, requests.HTTPError) and exc.response is not None:
+                    try:
+                        body = exc.response.json()
+                    except ValueError:
+                        body = exc.response.text
+                    detail = f"{exc}. Response details: {body}"
+                else:
+                    detail = str(exc)
+                last_error = detail
                 if attempt == retry_attempts:
                     break
                 time.sleep(retry_backoff_seconds * (attempt + 1))

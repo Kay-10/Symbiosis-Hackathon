@@ -159,12 +159,12 @@ class SakhiAssistant:
         *,
         language_hint: Optional[str] = None,
     ) -> GroqDirective:
-        convo = list(conversation)
+        prompt = PRIMARY_SYSTEM_PROMPT
         if language_hint:
-            convo.append(GroqMessage(role="system", content=f"LANGUAGE_HINT::{language_hint}"))
+            prompt = PRIMARY_SYSTEM_PROMPT + f"\nLanguage hint: {language_hint}"
         response = self.groq_client.structured_complete(
-            PRIMARY_SYSTEM_PROMPT,
-            convo,
+            prompt,
+            conversation,
         )
         raw_text = self.groq_client.extract_message_text(response)
         try:
