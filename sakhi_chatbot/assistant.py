@@ -224,6 +224,42 @@ class SakhiAssistant:
         if self.awaiting_location:
             return self._handle_location_response(user_text, language_code)
 
+        # Groq-only shortcut: when users ask quick advice like "kya karu" or "batao",
+        # call the LLM directly with the conversation history and return its reply
+        # without invoking agents. This gives fast, direct guidance for simple asks.
+        try:
+            if re.search(r"\b(kya\s+karu|batao)\b", user_text, flags=re.IGNORECASE):
+                history = self._memory_as_messages()
+                # Build a lightweight system prompt to get a direct textual reply
+                system = GroqMessage(
+                    role="system",
+                    content=(
+                        "You are Sakhi, a warm and caring community health guide. "
+                        "Give a short, practical answer to the user's question in the user's language. "
+                        "Do not trigger any agent actions or produce JSON—just reply with plain helpful text."
+                    ),
+                )
+                messages = [system] + history
+                try:
+                    response = self.groq_client.complete(messages, temperature=0.5, max_tokens=300)
+                    reply = self.groq_client.extract_message_text(response).strip()
+                    # Append and return the LLM reply directly
+                    self.memory.append("assistant", reply)
+                    return AssistantTurnResult(
+                        language=language_code,
+                        message=reply,
+                        encourage_doctor=False,
+                        agent_name="NONE",
+                        agent_inputs={},
+                        intermediate_message=None,
+                    )
+                except Exception:
+                    # If the groq-only path fails, fall back to normal processing below.
+                    pass
+        except re.error:
+            # If regex fails for some reason, continue with normal flow.
+            pass
+
         self._capture_inline_pincode(user_text)
 
         conversation = self._memory_as_messages()
