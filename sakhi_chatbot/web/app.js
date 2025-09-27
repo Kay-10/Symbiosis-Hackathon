@@ -40,19 +40,44 @@ async function init() {
   bindEvents();
 }
 
+async function createNewSession(resetChat = true) {
+  try {
+    const res = await fetch("/api/session", { method: "POST" });
+    if (!res.ok) {
+      throw new Error("session-create-failed");
+    }
+    const data = await res.json();
+    state.sessionId = data.session_id;
+    localStorage.setItem("sakhiSessionId", state.sessionId);
+    if (resetChat) {
+      state.messages = [];
+      renderMessages();
+    }
+  } catch (error) {
+    console.error("Unable to create session", error);
+    appendMessage("assistant", "सर्वर से कनेक्ट नहीं हो पाया, कृपया थोड़ी देर बाद फिर कोशिश करें।");
+  }
+}
+
 async function ensureSession() {
   let sessionId = localStorage.getItem("sakhiSessionId");
   if (!sessionId) {
-    const res = await fetch("/api/session", { method: "POST" });
-    const data = await res.json();
-    sessionId = data.session_id;
-    localStorage.setItem("sakhiSessionId", sessionId);
+    await createNewSession();
+    return;
   }
   state.sessionId = sessionId;
 }
 
 async function loadHistory() {
+  if (!state.sessionId) {
+    await createNewSession();
+    return;
+  }
   const res = await fetch(`/api/history?session_id=${state.sessionId}`);
+  if (res.status === 404) {
+    await createNewSession();
+    return;
+  }
   if (!res.ok) return;
   const data = await res.json();
   state.messages = data.history || [];
@@ -470,7 +495,7 @@ function interleave(buffer) {
   return result;
 }
 
-async function transcribeAndSend(blob) {
+async function transcribeAndSend(blob, hasRetried = false) {
   const formData = new FormData();
   formData.append("session_id", state.sessionId);
   formData.append("audio", blob, "speech.wav");
@@ -498,6 +523,10 @@ async function transcribeAndSend(blob) {
       body: formData,
       signal: controller.signal,
     });
+    if (res.status === 404 && !hasRetried) {
+      await createNewSession();
+      return transcribeAndSend(blob, true);
+    }
     if (!res.ok) {
       throw new Error("transcribe failed");
     }
@@ -642,12 +671,7 @@ async function restartSession() {
   setControls({ recording: false, processing: true });
   setStatus("Creating new session…", "busy");
   try {
-    const res = await fetch("/api/session", { method: "POST" });
-    const data = await res.json();
-    state.sessionId = data.session_id;
-    localStorage.setItem("sakhiSessionId", state.sessionId);
-    state.messages = [];
-    renderMessages();
+    await createNewSession(true);
   } catch (error) {
     appendMessage("assistant", "Unable to restart session right now.");
   } finally {

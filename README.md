@@ -4,7 +4,7 @@ Sakhi is a conversational healthcare companion crafted for rural women in India.
 
 ## Features
 - Warm, multilingual chat experience powered by Groq with memory-aware follow ups.
-- Push-to-talk web companion with automatic silence detection, quick transcription, and natural voice replies.
+- Push-to-talk web companion with automatic silence detection, Gemini-powered transcription, and natural voice replies.
 - Seamless agent hand-offs:
   - `LOCAL_DIRECTORY` fetches nearby clinics from `sakhi_chatbot/data/local_health_directory.json`.
   - `HEALTH_KNOWLEDGE` blends cached guidance with live data (US HHS MyHealthfinder, National Health Portal of India, UNICEF India, optional custom API).
@@ -13,19 +13,20 @@ Sakhi is a conversational healthcare companion crafted for rural women in India.
 
 ## Setup
 1. Ensure Python 3.9+ is installed.
-2. Install dependencies:
+2. Install dependencies from the bundled requirements file:
    ```bash
-   pip install requests langdetect SpeechRecognition fastapi uvicorn python-multipart beautifulsoup4 edge-tts
-   ```
-   For best results with the HTML scrapers also install:
-   ```bash
-   pip install lxml
+   pip install -r requirements.txt
    ```
 3. Export your Groq API key:
    ```bash
    export GROQ_API_KEY="your_key_here"
    ```
-4. *(Optional)* If you have a trusted public health information API, expose it via:
+4. Export your Gemini API key (used for speech-to-text):
+   ```bash
+   export GEMINI_API_KEY="your_gemini_key_here"
+   ```
+   You can override the default model by setting `GEMINI_STT_MODEL` (defaults to `gemini-1.5-flash`).
+5. *(Optional)* If you have a trusted public health information API, expose it via:
    ```bash
    export HEALTH_INFO_API="https://example.org/health"
    ```
@@ -49,5 +50,5 @@ Open http://localhost:8000 and use the **Talk** button for voice conversations o
 
 ## Notes
 - Each web session maintains its own persisted history under `.storage/web_sessions/` so conversations can resume after refresh.
-- When the speech recogniser cannot decode audio, Sakhi prompts the user to try again without losing context.
+- When Gemini cannot decode audio, Sakhi prompts the user to try again without losing context.
 - If Groq or network calls fail, Sakhi responds gracefully and encourages contacting a nearby health worker.

@@ -1,16 +1,24 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import importlib
 import io
 import json
+import os
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
 from typing import Dict, List, Optional
 
-import speech_recognition as sr
 import edge_tts
+
+genai = None
+try:  # pragma: no cover - optional dependency check
+    genai = importlib.import_module("google.generativeai")
+except ModuleNotFoundError:
+    genai = None
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -105,6 +113,13 @@ VOICE_MAP = {
 }
 DEFAULT_VOICE = "en-IN-NeerjaNeural"
 app = FastAPI(title="Sakhi Voice Companion", version="1.0.0")
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL_NAME = os.getenv("GEMINI_STT_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = None
+if GEMINI_API_KEY and genai:
+    genai.configure(api_key=GEMINI_API_KEY)
+    GEMINI_MODEL = genai.GenerativeModel(GEMINI_MODEL_NAME)
 
 app.add_middleware(
     CORSMiddleware,
@@ -206,28 +221,57 @@ async def transcribe_audio(
     if not data:
         raise HTTPException(status_code=400, detail="Empty audio stream")
 
-    text, lang = await run_in_threadpool(_transcribe_bytes, data)
+    try:
+        text, lang = await run_in_threadpool(_transcribe_bytes, data)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     if not text:
         raise HTTPException(status_code=422, detail="Could not understand audio")
     return {"text": text, "language": lang}
 
 
 def _transcribe_bytes(data: bytes) -> tuple[Optional[str], Optional[str]]:
-    recognizer = sr.Recognizer()
-    with sr.AudioFile(io.BytesIO(data)) as source:
-        audio = recognizer.record(source)
-    for lang in ("hi-IN", "en-IN"):
-        try:
-            text = recognizer.recognize_google(audio, language=lang)
-            return text, lang
-        except sr.UnknownValueError:
-            continue
-        except sr.RequestError:
-            break
+    if not GEMINI_MODEL:
+        if not GEMINI_API_KEY:
+            raise RuntimeError("Gemini transcription is not configured. Set GEMINI_API_KEY.")
+        if genai is None:
+            raise RuntimeError(
+                "google-generativeai is not installed. Run `pip install google-generativeai`."
+            )
+        raise RuntimeError("Gemini transcription model could not be initialised.")
+
+    audio_base64 = base64.b64encode(data).decode("utf-8")
+    prompt_parts = [
+        {
+            "role": "user",
+            "parts": [
+                {
+                    "text": (
+                        "Transcribe the provided audio recording. "
+                        "The speaker may use Hindi, Marathi, or English. "
+                        "Return only the words they spoke with no extra commentary."
+                    )
+                },
+                {
+                    "mime_type": "audio/wav",
+                    "data": audio_base64,
+                },
+            ],
+        }
+    ]
+
     try:
-        text = recognizer.recognize_google(audio)
-        return text, None
-    except sr.UnknownValueError:
+        response = GEMINI_MODEL.generate_content(prompt_parts, request_options={"timeout": 60})
+    except Exception as exc:  # pragma: no cover - network/API failures
+        raise RuntimeError(f"Gemini transcription failed: {exc}") from exc
+
+    text = (getattr(response, "text", "") or "").strip()
+    if not text:
         return None, None
-    except sr.RequestError:
-        return None, None
+
+    try:
+        language_code = language_router.detect_language(text).language_code
+    except Exception:
+        language_code = None
+
+    return text, language_code
